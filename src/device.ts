@@ -21,20 +21,12 @@ type PendingRequest = {
   timeout: NodeJS.Timeout
 }
 
-type SwitchStatus = {
-  state: boolean
-  temperature?: number
-}
-
-type InputStatus = {
-  state: boolean
-}
+const MAX_INPUTS = 10
 
 export class Device {
   id: string | null = null
   connected: boolean = false
   numSwitches: number = 0
-  numInputs: number = 0
   address: string
   name: string | null = null
   model: string | null = null
@@ -188,14 +180,10 @@ export class Device {
   }
 
   private getCapabilities(status: any) {
-    this.numInputs = 0
     this.numSwitches = 0
     for (let i = 0; i < 10; i++) {
       if (status[`switch:${i}`]) {
         this.numSwitches++
-      }
-      if (status[`input:${i}`]) {
-        this.numInputs++
       }
     }
   }
@@ -279,6 +267,21 @@ export class Device {
           */
       }
     }
+
+    readKeys.forEach((p: any) => {
+      for (let i = 0; i < MAX_INPUTS; i++) {
+        const key = p.key
+        const converter = p.converter
+        const val = status[`${key}:${i}`]
+        if (val !== undefined) {
+          values.push({
+            path: this.getSwitchPath(i, `${key}${i}`),
+            value: converter ? converter(val) : val
+          })
+        }
+      }
+    })
+    /*
     if ( this.numInputs > 0) {
       for (let i = 0; i < this.numInputs; i++) {
         const inputStatus = status[`input:${i}`]
@@ -290,6 +293,7 @@ export class Device {
         }
       }
     }
+      */
     /*
     info.putPaths?.forEach((prop: any) => {
       const path = `${getDevicePath(device)}.${prop.name || prop.deviceProp}`
@@ -456,6 +460,21 @@ export class Device {
         }
       }
     }
+
+    /*
+    if (this.numInputs > 0) {
+      for (let i = 0; i < this.numInputs; i++) {
+        const inputStatus = status[`input:${i}`]
+        if (inputStatus !== undefined) {
+          meta.push({
+            path: this.getSwitchPath(i, `input${i}`),
+            value: {units: 'bool'}
+          })
+        }
+      }
+    }
+      */
+
 
     /*
     info.putPaths?.forEach((prop: any) => {
@@ -793,4 +812,37 @@ const temperatureConverter = (value: any) => {
   return value?.tC + 273.15
 }
 
+const humidityConverter = (value: any) => {
+    return value / 100
+}
 
+const readKeys = [
+  {
+    key: 'input',
+    converter: (v:any) => v.state,
+    meta: {
+      units: 'bool'
+    }
+  },
+  {
+    key: 'temperature',
+    converter: (v:any) => temperatureConverter(v.tC),
+    meta: {
+      units: 'K'
+    }
+  },
+  {
+    key: 'humidity',
+    converter: (v:any) => humidityConverter(v.rh),
+    meta: {
+      units: 'K'
+    }
+  },
+  {
+    key: 'voltmeter',
+    converter: (v:any) => v.voltage,
+    meta: {
+      units: 'K'
+    }
+  }
+]
