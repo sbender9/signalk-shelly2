@@ -85,6 +85,10 @@ export default function (app: any) {
         device.disconnect()
       })
       discoveredDevices = {}
+      if (browser) {
+        browser.stop()
+        browser = null
+      }
     },
 
     id: 'signalk-shelly2',
