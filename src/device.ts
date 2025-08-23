@@ -15,20 +15,20 @@
 
 /**
  * Shelly Device WebSocket Connection Manager
- * 
+ *
  * This module handles WebSocket connections to Shelly devices with automatic reconnection support.
- * 
+ *
  * Features:
  * - Automatic reconnection with exponential backoff (1s, 2s, 4s, 8s, 16s, max 30s)
  * - Configurable maximum reconnection attempts (default: 10)
  * - Proper cleanup of pending requests on disconnection
  * - Manual reconnection triggering via forceReconnect()
  * - Connection state monitoring via reconnecting and reconnectionAttempts properties
- * 
+ *
  * The reconnection logic is triggered automatically when:
  * - WebSocket errors occur
  * - WebSocket connection is closed unexpectedly
- * 
+ *
  * Reconnection is stopped when:
  * - disconnect() is called explicitly
  * - Maximum reconnection attempts are reached
@@ -68,78 +68,80 @@ export class Device {
   private shouldReconnect: boolean = true
   private isReconnecting: boolean = false
 
-  constructor(app:any, plugin:any, deviceSettings: any, address: string) {
+  constructor (app: any, plugin: any, deviceSettings: any, address: string) {
     this.address = address
     this.deviceSettings = deviceSettings
     this.app = app
     this.plugin = plugin
-    
+
     // Configure reconnection parameters from device settings or use defaults
     this.maxReconnectAttempts = deviceSettings?.maxReconnectAttempts ?? -1
     this.shouldReconnect = deviceSettings?.enableReconnection !== false // Default to true unless explicitly disabled
   }
 
-  private debug(...args: any[]) {
+  private debug (...args: any[]) {
     this.app.debug(...args)
   }
 
-  private createWebSocketConnection(): Promise<WebSocket> {
+  private createWebSocketConnection (): Promise<WebSocket> {
     return new Promise((resolve, reject) => {
       try {
         const ws = new WebSocket(`ws://${this.address}/rpc`)
-        
+
         const onOpen = () => {
           this.debug(`Connected to device at ${this.address}`)
           ws.removeListener('error', onError)
           resolve(ws)
         }
-        
+
         const onError = (error: any) => {
           ws.removeListener('open', onOpen)
           reject(error)
         }
-        
+
         ws.once('open', onOpen)
         ws.once('error', onError)
-        
       } catch (error) {
         reject(error)
       }
     })
   }
 
-  async connect() : Promise<Device> {
+  async connect (): Promise<Device> {
     this.shouldReconnect = true
     this.reconnectAttempts = 0
-    
+
     return new Promise(async (resolve, reject) => {
       try {
         this.debug(`Connecting to device at ${this.address}`)
         this.ws = await this.createWebSocketConnection()
         this.setupWebSocketHandlers()
-        
+
         // Reset reconnection state on successful connection
         this.reconnectAttempts = 0
         this.isReconnecting = false
 
-        const deviceInfo = await this.send("Shelly.GetDeviceInfo")
+        const deviceInfo = await this.send('Shelly.GetDeviceInfo')
         this.id = deviceInfo.id
         this.name = deviceInfo.name || null
         this.model = deviceInfo.model
         this.gen = deviceInfo.gen
 
-        this.debug(`Initial device information retrieved successfully from ${this.address}: ${this.id} (${this.model}, Gen ${this.gen})`)
+        this.debug(
+          `Initial device information retrieved successfully from ${this.address}: ${this.id} (${this.model}, Gen ${this.gen})`
+        )
         this.debug(JSON.stringify(deviceInfo, null, 2))
 
-        const result = await this.send("Shelly.GetStatus")
-        this.debug(`Initial device status retrieved successfully from ${this.id}`)
+        const result = await this.send('Shelly.GetStatus')
+        this.debug(
+          `Initial device status retrieved successfully from ${this.id}`
+        )
         this.debug(JSON.stringify(result, null, 2))
         this.getCapabilities(result)
         this.registerForPuts(result)
         this.sendDeltas(result)
         this.connected = true
         resolve(this)
-        
       } catch (error) {
         this.app.error(`Failed to connect to device ${this.address}: ${error}`)
         reject(error)
@@ -147,14 +149,14 @@ export class Device {
     })
   }
 
-  private setupWebSocketHandlers() {
+  private setupWebSocketHandlers () {
     if (!this.ws) return
 
-    this.ws.on('message', (message) => {
+    this.ws.on('message', message => {
       let parsedMessage = JSON.parse(message.toString())
       //this.debug(`Received message from device ${this.id}: ${JSON.stringify(parsedMessage)}`)
 
-      if ( parsedMessage.method === 'NotifyStatus') {
+      if (parsedMessage.method === 'NotifyStatus') {
         this.sendDeltas(parsedMessage.params)
       } else {
         const pendingRequest = this.pendingRequests[parsedMessage.id]
@@ -170,8 +172,10 @@ export class Device {
       }
     })
 
-    this.ws.on('error', (error) => {
-      this.app.error(`WebSocket error for device ${this.id || this.address}: ${error}`)
+    this.ws.on('error', error => {
+      this.app.error(
+        `WebSocket error for device ${this.id || this.address}: ${error}`
+      )
       if (this.connected) {
         this.connected = false
         this.attemptReconnection()
@@ -179,7 +183,10 @@ export class Device {
     })
 
     this.ws.on('close', (code, reason) => {
-      this.debug(`WebSocket connection closed for device ${this.id || this.address}. Code: ${code}, Reason: ${reason}`)
+      this.debug(
+        `WebSocket connection closed for device ${this.id ||
+          this.address}. Code: ${code}, Reason: ${reason}`
+      )
       if (this.connected) {
         this.connected = false
         this.attemptReconnection()
@@ -187,13 +194,20 @@ export class Device {
     })
   }
 
-  private attemptReconnection() {
+  private attemptReconnection () {
     if (!this.shouldReconnect || this.isReconnecting) {
       return
     }
 
-    if (this.maxReconnectAttempts != -1 && this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.app.error(`Max reconnection attempts (${this.maxReconnectAttempts}) reached for device ${this.id || this.address}. Giving up.`)
+    if (
+      this.maxReconnectAttempts != -1 &&
+      this.reconnectAttempts >= this.maxReconnectAttempts
+    ) {
+      this.app.error(
+        `Max reconnection attempts (${
+          this.maxReconnectAttempts
+        }) reached for device ${this.id || this.address}. Giving up.`
+      )
       return
     }
 
@@ -201,51 +215,64 @@ export class Device {
     this.reconnectAttempts++
 
     // Calculate exponential backoff delay (1s, 2s, 4s, 8s, 16s, max 10s)
-    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 10000)
-    
-    this.debug(`Attempting to reconnect to device ${this.id || this.address} in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+    const delay = Math.min(
+      1000 * Math.pow(2, this.reconnectAttempts - 1),
+      10000
+    )
+
+    this.debug(
+      `Attempting to reconnect to device ${this.id ||
+        this.address} in ${delay}ms (attempt ${this.reconnectAttempts}/${
+        this.maxReconnectAttempts
+      })`
+    )
 
     this.reconnectTimeout = setTimeout(async () => {
       try {
         this.debug(`Reconnecting to device ${this.id || this.address}...`)
         this.ws = await this.createWebSocketConnection()
         this.setupWebSocketHandlers()
-        
+
         // Re-register for status updates after reconnection
-        const result = await this.send("Shelly.GetStatus")
+        const result = await this.send('Shelly.GetStatus')
         this.registerForPuts(result)
-        
+
         this.connected = true
         this.reconnectAttempts = 0
         this.isReconnecting = false
-        this.debug(`Successfully reconnected to device ${this.id || this.address}`)
-        
+        this.debug(
+          `Successfully reconnected to device ${this.id || this.address}`
+        )
       } catch (error) {
-        this.debug(`Reconnection attempt ${this.reconnectAttempts} failed for device ${this.id || this.address}: ${error}`)
+        this.debug(
+          `Reconnection attempt ${
+            this.reconnectAttempts
+          } failed for device ${this.id || this.address}: ${error}`
+        )
         this.isReconnecting = false
-        
+
         // Schedule next reconnection attempt
         this.attemptReconnection()
       }
     }, delay)
   }
 
-  disconnect() {
+  disconnect () {
     // Stop any reconnection attempts
     this.shouldReconnect = false
     this.isReconnecting = false
-    
+
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout)
       this.reconnectTimeout = null
     }
-    
+
     if (this.ws) {
       this.connected = false
       this.ws.close()
       this.ws = null
     }
-    
+
     // Clear any pending requests
     Object.values(this.pendingRequests).forEach(request => {
       clearTimeout(request.timeout)
@@ -257,12 +284,12 @@ export class Device {
   /**
    * Manually trigger a reconnection attempt
    */
-  forceReconnect() {
+  forceReconnect () {
     if (this.connected) {
       this.debug(`Force reconnecting device ${this.id || this.address}`)
       this.disconnect()
     }
-    
+
     this.shouldReconnect = true
     this.reconnectAttempts = 0
     this.attemptReconnection()
@@ -271,26 +298,28 @@ export class Device {
   /**
    * Check if the device is currently attempting to reconnect
    */
-  get reconnecting(): boolean {
+  get reconnecting (): boolean {
     return this.isReconnecting
   }
 
   /**
    * Get the current reconnection attempt count
    */
-  get reconnectionAttempts(): number {
+  get reconnectionAttempts (): number {
     return this.reconnectAttempts
   }
 
-  private async send(method: string, params: any = {}): Promise<any> {
+  private async send (method: string, params: any = {}): Promise<any> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      throw new Error(`WebSocket is not connected (state: ${this.ws?.readyState || 'null'})`)
+      throw new Error(
+        `WebSocket is not connected (state: ${this.ws?.readyState || 'null'})`
+      )
     }
 
     const id = this.next_id++
     const message = JSON.stringify({
-      jsonrpc: "2.0",
-      src: "signalk-shelly2",
+      jsonrpc: '2.0',
+      src: 'signalk-shelly2',
       id,
       method,
       params
@@ -316,31 +345,32 @@ export class Device {
     })
   }
 
-  async poll() {
+  async poll () {
     if (!this.connected) {
       throw new Error(`Device ${this.id || this.address} is not connected`)
     }
 
-    const status = await this.send("Shelly.GetStatus")
+    const status = await this.send('Shelly.GetStatus')
     this.sendDeltas(status)
   }
 
-  async setSwitch(value: any, switchIdx: number) {
-    const expected = value === 1 || value === 'on' || value === 'true' || value === true
-    await this.send("Switch.Set", { id: switchIdx, on: expected })
+  async setSwitch (value: any, switchIdx: number) {
+    const expected =
+      value === 1 || value === 'on' || value === 'true' || value === true
+    await this.send('Switch.Set', { id: switchIdx, on: expected })
     const status = await this.getSwitch(switchIdx)
     if (status.output !== expected) {
       throw new Error(`Failed to set switch ${switchIdx} to ${expected}`)
     }
-    this.sendDeltas({[`switch:${switchIdx}`]: status })
+    this.sendDeltas({ [`switch:${switchIdx}`]: status })
   }
 
-  async getSwitch(switchIdx: number): Promise<any> {
-    const res = await this.send("Switch.GetStatus", { id: switchIdx })
+  async getSwitch (switchIdx: number): Promise<any> {
+    const res = await this.send('Switch.GetStatus', { id: switchIdx })
     return res
   }
 
-  private getCapabilities(status: any) {
+  private getCapabilities (status: any) {
     this.numSwitches = 0
     for (let i = 0; i < 10; i++) {
       if (status[`switch:${i}`]) {
@@ -349,30 +379,32 @@ export class Device {
     }
   }
 
-  private getDevicePath(key?: string) {
+  private getDevicePath (key?: string) {
     let name = this.deviceSettings?.devicePath
-    if ( name === undefined ) {
+    if (name === undefined) {
       name = this.name ? camelCase(this.name) : this.id
     }
     return `electrical.switches.${name}${key ? '.' + key : ''}`
   }
 
   private getSwitchProps (relay: number) {
-    return this.deviceSettings ? this.deviceSettings[`switch${relay}`] : undefined
+    return this.deviceSettings
+      ? this.deviceSettings[`switch${relay}`]
+      : undefined
   }
 
-  private getSwitchPath(relay: number, key: any = 'state') {
+  private getSwitchPath (relay: number, key: any = 'state') {
     const switchProps = this.getSwitchProps(relay)
 
     let path = this.getDevicePath()
-    if ( this.numSwitches > 1 ) {
+    if (this.numSwitches > 1) {
       path = path + `.${switchProps?.switchPath || relay}`
     }
 
     return path + (key ? '.' + key : '')
   }
 
-  sendDeltas(status: any) {
+  sendDeltas (status: any) {
     let values: any = []
 
     if (this.deviceSettings?.enabled === false) {
@@ -384,7 +416,7 @@ export class Device {
       this.sentMeta = true
     }
 
-    if ( this.name ) {
+    if (this.name) {
       values.push({
         path: this.getDevicePath('name'),
         value: this.name
@@ -550,7 +582,7 @@ export class Device {
     }
   }
 
-  sendMeta(status:any) {
+  sendMeta (status: any) {
     let meta: any = []
 
     const devicePath = this.getDevicePath()
@@ -580,7 +612,7 @@ export class Device {
           path: this.getSwitchPath(i),
           value: {
             units: 'bool',
-            displayName: switchProps?.displayName,
+            displayName: switchProps?.displayName
             //timeout: this.ttl ? (this.ttl / 1000) : undefined
           }
         })
@@ -641,7 +673,7 @@ export class Device {
         path: this.getSwitchPath(0),
         value: {
           units: 'bool',
-          displayName: this.deviceSettings?.displayName || this.name,
+          displayName: this.deviceSettings?.displayName || this.name
         }
       })
 
@@ -670,7 +702,6 @@ export class Device {
       }
     }
       */
-
 
     /*
     info.putPaths?.forEach((prop: any) => {
@@ -776,34 +807,34 @@ export class Device {
     }
   }
 
-  registerForPuts (status:any): boolean {
-      if (this.numSwitches > 0) {
-        for (let i = 0; i < this.numSwitches; i++) {
-          const switchProps = this.getSwitchProps(i)
+  registerForPuts (status: any): boolean {
+    if (this.numSwitches > 0) {
+      for (let i = 0; i < this.numSwitches; i++) {
+        const switchProps = this.getSwitchProps(i)
 
-          if (switchProps?.enabled === false) {
-            continue
+        if (switchProps?.enabled === false) {
+          continue
+        }
+
+        const path = this.getSwitchPath(i)
+
+        this.app.registerPutHandler(
+          'vessels.self',
+          path,
+          (context: string, path: string, value: any, cb: any) => {
+            return this.valueHandler(
+              context,
+              path,
+              value,
+              (device: Device, value: any) => {
+                return device.setSwitch(value, i)
+              },
+              cb
+            )
           }
+        )
 
-          const path = this.getSwitchPath(i)
-
-          this.app.registerPutHandler(
-            'vessels.self',
-            path,
-            (context: string, path: string, value: any, cb: any) => {
-              return this.valueHandler(
-                context,
-                path,
-                value,
-                (device: Device, value: any) => {
-                  return device.setSwitch(value, i)
-                },
-                cb
-              )
-            }
-          )
-  
-          /*
+        /*
           if ( info.bankReadPaths ) {
             let readPaths = info.bankReadPaths(`${info.switchKey}${i}`)
             readPaths?.forEach((prop: any) => {
@@ -864,10 +895,10 @@ export class Device {
             )
           }
             */
-        }
       }
-  
-      /*
+    }
+
+    /*
       info.putPaths?.forEach((prop: any) => {
         const path = `${getDevicePath(device)}.${prop.name || prop.deviceProp}`
         app.registerPutHandler(
@@ -927,116 +958,114 @@ export class Device {
         }
         
       })*/
-  
-      return true
-    }
-  
-    valueHandler (
-      context: string,
-      path: string,
-      value: any,
-      func: (device: Device, value: any) => Promise<any>,
-      cb: any,
-      validator?: (result: any) => boolean
-    ) {
-      func(this, value)
-        .then((status: any) => {
-          let code = validator === undefined || validator(status) ? 200 : 400
-          cb({
-            state: 'COMPLETED',
-            statusCode: code
-          })
-        })
-        .catch((err: any) => {
-          this.app.error(err.message)
-          this.app.setPluginError(err.message)
-          cb({ state: 'COMPLETED', statusCode: 400, message: err.message })
-        })
-      return { state: 'PENDING' }
-    }
-  
 
+    return true
+  }
+
+  valueHandler (
+    context: string,
+    path: string,
+    value: any,
+    func: (device: Device, value: any) => Promise<any>,
+    cb: any,
+    validator?: (result: any) => boolean
+  ) {
+    func(this, value)
+      .then((status: any) => {
+        let code = validator === undefined || validator(status) ? 200 : 400
+        cb({
+          state: 'COMPLETED',
+          statusCode: code
+        })
+      })
+      .catch((err: any) => {
+        this.app.error(err.message)
+        this.app.setPluginError(err.message)
+        cb({ state: 'COMPLETED', statusCode: 400, message: err.message })
+      })
+    return { state: 'PENDING' }
+  }
 }
 
-  const switchReadPaths = () => {
-    return [
-      {
-        key: `voltage`,
-        meta: {
-          units: 'V'
-        }
-      },
-      {
-        key: `temperature`,
-        converter: temperatureConverter,
-        meta: {
-          units: 'K'
-        }
-      },
-      {
-        key: `source`,
-        /*meta: {
+const switchReadPaths = () => {
+  return [
+    {
+      key: `voltage`,
+      meta: {
+        units: 'V'
+      }
+    },
+    {
+      key: `temperature`,
+      converter: temperatureConverter,
+      meta: {
+        units: 'K'
+      }
+    },
+    {
+      key: `source`
+      /*meta: {
           units: 'string'
         }*/
-      },
-      {
-        key: `apower`,
-        meta: {
-          units: 'W'
-        }
-      },
-      {
-        key: `current`,
-        meta: {
-          units: 'A'
-        }
-      },
-      {
-        key: `pf`,
-        path: 'powerFactor',
-        converter: (val:any) => {
-          return val * 1000
-        },
-        meta: {
-          units: 'W'
-        }
+    },
+    {
+      key: `apower`,
+      meta: {
+        units: 'W'
       }
-    ]
-  }
+    },
+    {
+      key: `current`,
+      meta: {
+        units: 'A'
+      }
+    },
+    {
+      key: `pf`,
+      path: 'powerFactor',
+      converter: (val: any) => {
+        return val * 1000
+      },
+      meta: {
+        units: 'W'
+      }
+    }
+  ]
+}
 
 const temperatureConverter = (value: any) => {
   return value?.tC + 273.15
 }
 
 const humidityConverter = (value: any) => {
-    return value / 100
+  return value / 100
 }
 
 const readKeys = [
   {
     key: 'input',
-    converter: (v:any) => v.state,
+    converter: (v: any) => v.state,
     meta: {
       units: 'bool'
     }
   },
   {
     key: 'temperature',
-    converter: (v:any) => temperatureConverter(v.tC),
+    converter: (v: any) => temperatureConverter(v.tC),
     meta: {
       units: 'K'
     }
   },
   {
     key: 'humidity',
-    converter: (v:any) => humidityConverter(v.rh),
+    converter: (v: any) => humidityConverter(v.rh),
     meta: {
       units: 'K'
     }
   },
   {
     key: 'voltmeter',
-    converter: (v:any) => v.voltage,
+    converter: (v: any) => v.voltage,
     meta: {
       units: 'K'
     }

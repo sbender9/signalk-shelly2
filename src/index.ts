@@ -38,7 +38,7 @@ export default function (app: any) {
     start: function (properties: any) {
       props = properties
 
-      browser = mdns.createBrowser(mdns.tcp(SERVICE_NAME)) 
+      browser = mdns.createBrowser(mdns.tcp(SERVICE_NAME))
 
       browser.on('ready', () => {
         browser.discover()
@@ -48,16 +48,19 @@ export default function (app: any) {
         if (
           Array.isArray(data.type) &&
           data.type[0].name === SERVICE_NAME &&
-          data.fullname) {
-          let deviceId = data.fullname.split('.', 1)[0];
+          data.fullname
+        ) {
+          let deviceId = data.fullname.split('.', 1)[0]
 
-          if ( discoveredDevices[deviceId] ) {
+          if (discoveredDevices[deviceId]) {
             return
           }
 
-          const gen = data.txt.find((txt: any) => txt.startsWith('gen=')).split('=')[1]
+          const gen = data.txt
+            .find((txt: any) => txt.startsWith('gen='))
+            .split('=')[1]
 
-          if ( gen && Number(gen) >= 2 ) {
+          if (gen && Number(gen) >= 2) {
             const props = getDeviceProps(deviceId)
             let device = new Device(app, plugin, props, data.addresses[0])
             try {
@@ -76,14 +79,16 @@ export default function (app: any) {
         }
       })
 
-      if ( props?.poll > 0 ) {
+      if (props?.poll > 0) {
         pollInterval = setInterval(() => {
           Object.values(discoveredDevices).forEach(async (device: Device) => {
             if (props?.enabled !== false) {
               try {
                 await device.poll()
               } catch (error) {
-                console.error(`Failed to poll device ${device.id || device.address}`)
+                console.error(
+                  `Failed to poll device ${device.id || device.address}`
+                )
                 console.error(error)
               }
             }
@@ -122,7 +127,8 @@ export default function (app: any) {
           poll: {
             type: 'number',
             title: 'Poll Interval (ms)',
-            description: 'The interval at which the device is polled for updates, -1 to disable',
+            description:
+              'The interval at which the device is polled for updates, -1 to disable',
             default: 5000
           }
         }
@@ -130,9 +136,9 @@ export default function (app: any) {
 
       let devices = Object.values(discoveredDevices)
 
-      devices.forEach((device) => {
+      devices.forEach(device => {
         debug(`adding Device ID ${deviceKey(device)} to schema`)
-        
+
         let props: any = (schema.properties[
           `Device ID ${deviceKey(device)}`
         ] = {
@@ -265,7 +271,7 @@ export default function (app: any) {
         }
           */
       })
-    
+
       schema.properties.nextGenPassswords = {
         title: 'Next Gen Device Passwords',
         type: 'array',
@@ -336,17 +342,17 @@ export default function (app: any) {
       //deviceProp: 'gain',
       name: 'dimmingLevel',
       setter: (device: any, value: any) => {
-        if ( device.white > 0 ) {
+        if (device.white > 0) {
           let white = device.white / 255
-          let gain = device.gain /100
+          let gain = device.gain / 100
 
-          if ( white < gain ) {
+          if (white < gain) {
             white = white + value - gain
           } else {
             white = value
             value = gain + value - white
           }
-          if ( white <= 0 ) {
+          if (white <= 0) {
             white = 0.01
           }
           device.setColor({
@@ -354,19 +360,19 @@ export default function (app: any) {
           })
         }
 
-        if  ( value <= 0 ) {
+        if (value <= 0) {
           value = 0.01
         }
-        
+
         return device.setColor({
           gain: Number((value * 100).toFixed(0))
         })
       },
       getter: (device: any) => {
         let value = device.gain / 100
-        if ( device.red === 0 && device.green === 0 && device.blue === 0 ) {
-          value = device.white/255
-        } else if ( device.gain > 0 && device.white > 0 ) {
+        if (device.red === 0 && device.green === 0 && device.blue === 0) {
+          value = device.white / 255
+        } else if (device.gain > 0 && device.white > 0) {
           value = device.white > device.gain ? device.white / 255 : value
         }
         return Number(value.toFixed(2))
@@ -386,7 +392,7 @@ export default function (app: any) {
       },
       meta: {
         units: 'rgbColor',
-        range: [ 0, 255 ]
+        range: [0, 255]
       }
     },
     {
@@ -398,7 +404,7 @@ export default function (app: any) {
       },
       meta: {
         units: 'rgbColor',
-        range: [ 0, 255 ]
+        range: [0, 255]
       }
     },
     {
@@ -410,7 +416,7 @@ export default function (app: any) {
       },
       meta: {
         units: 'rgbColor',
-        range: [ 0, 255 ]
+        range: [0, 255]
       }
     },
     {
@@ -422,7 +428,7 @@ export default function (app: any) {
       },
       meta: {
         units: 'rgbColor',
-        range: [ 0, 255 ]
+        range: [0, 255]
       }
     },
     {
@@ -535,7 +541,7 @@ export default function (app: any) {
       {
         key: `${key}.pf`,
         path: 'powerFactor',
-        converter: (val:any) => {
+        converter: (val: any) => {
           return val * 1000
         },
         meta: {
@@ -565,7 +571,7 @@ export default function (app: any) {
       }
     ]
   }
-    
+
   const simpleRelay = {
     putPaths: simpleRelayPutPaths,
     readPaths: simpleRelayReadPaths
@@ -609,14 +615,14 @@ export default function (app: any) {
       ]
     },
     */
-    
+
     'Shelly Plus 1': {
       nextGen: true,
       putPaths: nextgenSwitchPutPaths('switch0'),
       readPaths: [
         ...nextgenSwitchReadPaths('switch0'),
         ...nextgenInputPaths('input0')
-      ],
+      ]
     },
     'Shelly Plus 1 PM': {
       nextGen: true,
@@ -682,17 +688,15 @@ export default function (app: any) {
         ...nextgenInputPaths('input0'),
         ...nextgenInputPaths('input1'),
         ...nextgenInputPaths('input2'),
-        ...nextgenInputPaths('input3'),
+        ...nextgenInputPaths('input3')
       ]
     },
     'Shelly Plus Plug US': {
       nextGen: true,
       putPaths: nextgenSwitchPutPaths('switch0'),
-      readPaths: [
-        ...nextgenSwitchReadPaths('switch0')
-      ]
+      readPaths: [...nextgenSwitchReadPaths('switch0')]
     },
-    
+
     'SHSW-1': {
       putPaths: simpleRelayPutPaths,
       readPaths: [
@@ -841,7 +845,7 @@ export default function (app: any) {
           key: 'externalHumidity',
           converter: humidityConverter,
           meta: {
-            units: 'ratio',
+            units: 'ratio'
           }
         }
       ]
@@ -857,7 +861,7 @@ export default function (app: any) {
           key: 'humidity',
           converter: humidityConverter,
           meta: {
-            units: 'ratio',
+            units: 'ratio'
           }
         },
         'battery'
@@ -875,12 +879,12 @@ export default function (app: any) {
           key: 'humidity0',
           converter: nextgenHumidityConverter,
           meta: {
-            units: 'ratio',
+            units: 'ratio'
           }
         }
       ]
     },
-    
+
     SHEM: {
       isSwitchBank: true,
       switchCount: 1,
@@ -1016,7 +1020,7 @@ export default function (app: any) {
         {
           key: 'temperature',
           converter: temperatureConverter
-        },
+        }
       ]
     },
 
@@ -1038,7 +1042,7 @@ export default function (app: any) {
         {
           key: 'temperature',
           converter: temperatureConverter
-        },
+        }
       ]
     },
 
@@ -1057,7 +1061,7 @@ export default function (app: any) {
         'vibration',
         'battery',
         'illuminance'
-      ], 
+      ]
     },
 
     'SHMOS-02': {
@@ -1078,9 +1082,9 @@ export default function (app: any) {
         {
           key: 'temperature',
           converter: temperatureConverter
-        },
+        }
       ]
-    },
+    }
   }
 
   deviceTypes['SHSW-25:roller'] = { ...deviceTypes['SHSW-21:roller'] }
@@ -1104,7 +1108,7 @@ export default function (app: any) {
 
   deviceTypes['Shelly Pro 2'] = { ...deviceTypes['Shelly Plus 2 PM'] }
   deviceTypes['Shelly Pro 2 PM'] = { ...deviceTypes['Shelly Plus 2 PM'] }
-  
+
   return plugin
 }
 
