@@ -316,6 +316,15 @@ export class Device {
     })
   }
 
+  async poll() {
+    if (!this.connected) {
+      throw new Error(`Device ${this.id || this.address} is not connected`)
+    }
+
+    const status = await this.send("Shelly.GetStatus")
+    this.sendDeltas(status)
+  }
+
   async setSwitch(value: any, switchIdx: number) {
     const expected = value === 1 || value === 'on' || value === 'true' || value === true
     await this.send("Switch.Set", { id: switchIdx, on: expected })

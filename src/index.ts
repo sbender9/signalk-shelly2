@@ -32,6 +32,7 @@ export default function (app: any) {
   let stopped = true
   let discoveredDevices: { [key: string]: Device } = {}
   let browser: any
+  let pollInterval: any = null
 
   const plugin: Plugin = {
     start: function (properties: any) {
@@ -74,6 +75,21 @@ export default function (app: any) {
           }
         }
       })
+
+      if ( props?.poll > 0 ) {
+        pollInterval = setInterval(() => {
+          Object.values(discoveredDevices).forEach(async (device: Device) => {
+            if (props?.enabled !== false) {
+              try {
+                await device.poll()
+              } catch (error) {
+                console.error(`Failed to poll device ${device.id || device.address}`)
+                console.error(error)
+              }
+            }
+          })
+        }, props.poll)
+      }
     },
 
     stop: function () {
@@ -89,6 +105,10 @@ export default function (app: any) {
         browser.stop()
         browser = null
       }
+      if (pollInterval) {
+        clearInterval(pollInterval)
+        pollInterval = null
+      }
     },
 
     id: 'signalk-shelly2',
@@ -99,6 +119,12 @@ export default function (app: any) {
       const schema: any = {
         type: 'object',
         properties: {
+          poll: {
+            type: 'number',
+            title: 'Poll Interval (ms)',
+            description: 'The interval at which the device is polled for updates, -1 to disable',
+            default: 5000
+          }
         }
       }
 
