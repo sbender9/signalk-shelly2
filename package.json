@@ -6,6 +6,7 @@
   "scripts": {
     "test": "mocha",
     "format": "prettier-standard 'src/*.ts'",
+    "ci-test": "npm run build && npm run test",
     "build": "tsc",
     "watch": "npm run build -- -w"
   },
