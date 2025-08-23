@@ -14,6 +14,7 @@
  */
 
 import WebSocket from 'ws'
+import camelCase from 'camelcase'
 
 type PendingRequest = {
   resolve: (value: any) => void
@@ -188,8 +189,12 @@ export class Device {
     }
   }
 
-  private getDevicePath() {
-    return `electrical.switches.${this.deviceSettings?.devicePath || this.id}`
+  private getDevicePath(key?: string) {
+    let name = this.deviceSettings?.devicePath
+    if ( name === undefined ) {
+      name = this.name ? camelCase(this.name) : this.id
+    }
+    return `electrical.switches.${name}${key ? '.' + key : ''}`
   }
 
   private getSwitchProps (relay: number) {
@@ -199,7 +204,7 @@ export class Device {
   private getSwitchPath(relay: number, key: any = 'state') {
     const switchProps = this.getSwitchProps(relay)
 
-    let path = `electrical.switches.${this.deviceSettings?.devicePath || this.id}`
+    let path = this.getDevicePath()
     if ( this.numSwitches > 1 ) {
       path = path + `.${switchProps?.switchPath || relay}`
     }
@@ -218,6 +223,18 @@ export class Device {
       this.sendMeta(status)
       this.sentMeta = true
     }
+
+    if ( this.name ) {
+      values.push({
+        path: this.getDevicePath('name'),
+        value: this.name
+      })
+    }
+
+    values.push({
+      path: this.getDevicePath('model'),
+      value: this.model
+    })
 
     if (this.numSwitches > 0) {
       for (let i = 0; i < this.numSwitches; i++) {
@@ -382,16 +399,16 @@ export class Device {
       return
     }
 
-    if (this.deviceSettings?.displayName) {
+    if (this.deviceSettings?.displayName || this.name) {
       meta.push({
         path: devicePath,
         value: {
-          displayName: this.deviceSettings.displayName
+          displayName: this.deviceSettings?.displayName || this.name
         }
       })
     }
 
-    if (this.numSwitches > 0) {
+    if (this.numSwitches > 1) {
       for (let i = 0; i < this.numSwitches; i++) {
         const switchProps = this.getSwitchProps(i)
 
@@ -459,6 +476,25 @@ export class Device {
           })
         }
       }
+    } else {
+      meta.push({
+        path: this.getSwitchPath(0),
+        value: {
+          units: 'bool',
+          displayName: this.deviceSettings?.displayName || this.name,
+        }
+      })
+
+      let readPaths = switchReadPaths()
+      readPaths?.forEach((p: any) => {
+        if (p.meta && status[`switch:${0}`][p.key] !== undefined) {
+          meta.push({
+            path: this.getSwitchPath(0, p.path || p.key),
+            value: p.meta,
+            displayName: this.deviceSettings?.displayName || this.name
+          })
+        }
+      })
     }
 
     /*

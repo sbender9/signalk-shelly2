@@ -141,12 +141,13 @@ export default function (app: any) {
             },
             displayName: {
               type: 'string',
-              title: 'Display Name (meta)'
+              title: 'Display Name (meta)',
+              default: device.name
             }
           }
         })
 
-        if (device.numSwitches > 0) {
+        if (device.numSwitches > 1) {
           for (let i = 0; i < device.numSwitches; i++) {
             const key = `switch${i}`
             let defaultPath
