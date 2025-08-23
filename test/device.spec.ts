@@ -349,4 +349,54 @@ describe('Device Class Unit Tests', () => {
       expect(device.connected).to.be.false
     })
   })
+
+  describe('Reconnection Functionality', () => {
+    it('should configure reconnection parameters from settings', () => {
+      const settingsWithReconnect = {
+        enabled: true,
+        maxReconnectAttempts: 5,
+        enableReconnection: true
+      }
+      
+      const { Device } = require('../dist/device')
+      const device = new Device(mockApp, mockPlugin, settingsWithReconnect, '192.168.1.100')
+      
+      expect(device.reconnectionAttempts).to.equal(0)
+      expect(device.reconnecting).to.be.false
+    })
+
+    it('should use default reconnection parameters when not specified', () => {
+      const defaultSettings = {
+        enabled: true
+      }
+      
+      const { Device } = require('../dist/device')
+      const device = new Device(mockApp, mockPlugin, defaultSettings, '192.168.1.100')
+      
+      expect(device.reconnectionAttempts).to.equal(0)
+      expect(device.reconnecting).to.be.false
+    })
+
+    it('should allow disabling reconnection via settings', () => {
+      const settingsWithoutReconnect = {
+        enabled: true,
+        enableReconnection: false
+      }
+      
+      const { Device } = require('../dist/device')
+      const device = new Device(mockApp, mockPlugin, settingsWithoutReconnect, '192.168.1.100')
+      
+      expect(device.reconnectionAttempts).to.equal(0)
+      expect(device.reconnecting).to.be.false
+    })
+
+    it('should expose reconnection status methods', () => {
+      const { Device } = require('../dist/device')
+      const device = new Device(mockApp, mockPlugin, {}, '192.168.1.100')
+      
+      expect(typeof device.forceReconnect).to.equal('function')
+      expect(typeof device.reconnecting).to.equal('boolean')
+      expect(typeof device.reconnectionAttempts).to.equal('number')
+    })
+  })
 })

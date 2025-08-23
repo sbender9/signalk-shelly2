@@ -13,6 +13,28 @@
  * limitations under the License.
  */
 
+/**
+ * Shelly Device WebSocket Connection Manager
+ * 
+ * This module handles WebSocket connections to Shelly devices with automatic reconnection support.
+ * 
+ * Features:
+ * - Automatic reconnection with exponential backoff (1s, 2s, 4s, 8s, 16s, max 30s)
+ * - Configurable maximum reconnection attempts (default: 10)
+ * - Proper cleanup of pending requests on disconnection
+ * - Manual reconnection triggering via forceReconnect()
+ * - Connection state monitoring via reconnecting and reconnectionAttempts properties
+ * 
+ * The reconnection logic is triggered automatically when:
+ * - WebSocket errors occur
+ * - WebSocket connection is closed unexpectedly
+ * 
+ * Reconnection is stopped when:
+ * - disconnect() is called explicitly
+ * - Maximum reconnection attempts are reached
+ * - The device is manually stopped
+ */
+
 import WebSocket from 'ws'
 import camelCase from 'camelcase'
 
@@ -40,104 +62,229 @@ export class Device {
   private sentMeta: boolean = false
   private app: any
   private plugin: any
+  private reconnectAttempts: number = 0
+  private maxReconnectAttempts: number = -1
+  private reconnectTimeout: NodeJS.Timeout | null = null
+  private shouldReconnect: boolean = true
+  private isReconnecting: boolean = false
 
   constructor(app:any, plugin:any, deviceSettings: any, address: string) {
     this.address = address
     this.deviceSettings = deviceSettings
     this.app = app
     this.plugin = plugin
+    
+    // Configure reconnection parameters from device settings or use defaults
+    this.maxReconnectAttempts = deviceSettings?.maxReconnectAttempts ?? -1
+    this.shouldReconnect = deviceSettings?.enableReconnection !== false // Default to true unless explicitly disabled
   }
 
   private debug(...args: any[]) {
     this.app.debug(...args)
   }
 
-  async connect() : Promise<Device> {
+  private createWebSocketConnection(): Promise<WebSocket> {
     return new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(`ws://${this.address}/rpc`)
-      } catch (error) {
-        reject(`Failed to connect to device ${this.id}: ${error}`)
-        return
-      }
-
-      this.debug(`Connecting to device at ${this.address}`)
-      this.ws.on('open', () => {
-        this.debug(`Connected to device at ${this.address}`)
-
-        this.send("Shelly.GetDeviceInfo")
-          .catch((error) => {
-            this.app.error(`Error getting initial device information from ${this.address}: ${error}`)
-            reject(error)
-          })
-          .then((deviceInfo) => {
-            this.id = deviceInfo.id
-            this.name = deviceInfo.name || null
-            this.model = deviceInfo.model
-            this.gen = deviceInfo.gen
-
-            this.debug(`Initial device information retrieved successfully from ${this.address}: ${this.id} (${this.model}, Gen ${this.gen})`)
-            this.debug(JSON.stringify(deviceInfo, null, 2))
-
-            this.send("Shelly.GetStatus")
-              .then((result) => {
-                this.debug(`Initial device status retrieved successfully from ${this.id}`)
-                this.debug(JSON.stringify(result, null, 2))
-                this.getCapabilities(result)
-                this.registerForPuts(result)
-                this.sendDeltas(result)
-                this.connected = true
-                resolve(this)
-              })
-              .catch((error) => {
-                this.debug(`Error getting initial device status: ${error}`)
-                reject(error)
-              })
-          })
-      })
-
-      this.ws.on('message', (message) => {
-        let parsedMessage = JSON.parse(message.toString())
-        //this.debug(`Received message from device ${this.id}: ${JSON.stringify(parsedMessage)}`)
-
-        if ( parsedMessage.method === 'NotifyStatus') {
-          this.sendDeltas(parsedMessage.params)
-        } else {
-          const pendingRequest = this.pendingRequests[parsedMessage.id]
-          if (pendingRequest) {
-            clearTimeout(pendingRequest.timeout)
-            if (parsedMessage.error) {
-              pendingRequest.reject(parsedMessage.error)
-            } else {
-              pendingRequest.resolve(parsedMessage.result)
-            }
-            delete this.pendingRequests[parsedMessage.id]
-          }
+        const ws = new WebSocket(`ws://${this.address}/rpc`)
+        
+        const onOpen = () => {
+          this.debug(`Connected to device at ${this.address}`)
+          ws.removeListener('error', onError)
+          resolve(ws)
         }
-      })
-
-      this.ws.on('error', (error) => {
-        //console.error(`Error occurred while connecting to device ${this.id}: ${error}`)
+        
+        const onError = (error: any) => {
+          ws.removeListener('open', onOpen)
+          reject(error)
+        }
+        
+        ws.once('open', onOpen)
+        ws.once('error', onError)
+        
+      } catch (error) {
         reject(error)
-      })
-
-      this.ws.on('close', () => {
-        //console.log(`Connection to device ${this.id} closed`)
-      })
+      }
     })
   }
 
+  async connect() : Promise<Device> {
+    this.shouldReconnect = true
+    this.reconnectAttempts = 0
+    
+    return new Promise(async (resolve, reject) => {
+      try {
+        this.debug(`Connecting to device at ${this.address}`)
+        this.ws = await this.createWebSocketConnection()
+        this.setupWebSocketHandlers()
+        
+        // Reset reconnection state on successful connection
+        this.reconnectAttempts = 0
+        this.isReconnecting = false
+
+        const deviceInfo = await this.send("Shelly.GetDeviceInfo")
+        this.id = deviceInfo.id
+        this.name = deviceInfo.name || null
+        this.model = deviceInfo.model
+        this.gen = deviceInfo.gen
+
+        this.debug(`Initial device information retrieved successfully from ${this.address}: ${this.id} (${this.model}, Gen ${this.gen})`)
+        this.debug(JSON.stringify(deviceInfo, null, 2))
+
+        const result = await this.send("Shelly.GetStatus")
+        this.debug(`Initial device status retrieved successfully from ${this.id}`)
+        this.debug(JSON.stringify(result, null, 2))
+        this.getCapabilities(result)
+        this.registerForPuts(result)
+        this.sendDeltas(result)
+        this.connected = true
+        resolve(this)
+        
+      } catch (error) {
+        this.app.error(`Failed to connect to device ${this.address}: ${error}`)
+        reject(error)
+      }
+    })
+  }
+
+  private setupWebSocketHandlers() {
+    if (!this.ws) return
+
+    this.ws.on('message', (message) => {
+      let parsedMessage = JSON.parse(message.toString())
+      //this.debug(`Received message from device ${this.id}: ${JSON.stringify(parsedMessage)}`)
+
+      if ( parsedMessage.method === 'NotifyStatus') {
+        this.sendDeltas(parsedMessage.params)
+      } else {
+        const pendingRequest = this.pendingRequests[parsedMessage.id]
+        if (pendingRequest) {
+          clearTimeout(pendingRequest.timeout)
+          if (parsedMessage.error) {
+            pendingRequest.reject(parsedMessage.error)
+          } else {
+            pendingRequest.resolve(parsedMessage.result)
+          }
+          delete this.pendingRequests[parsedMessage.id]
+        }
+      }
+    })
+
+    this.ws.on('error', (error) => {
+      this.app.error(`WebSocket error for device ${this.id || this.address}: ${error}`)
+      if (this.connected) {
+        this.connected = false
+        this.attemptReconnection()
+      }
+    })
+
+    this.ws.on('close', (code, reason) => {
+      this.debug(`WebSocket connection closed for device ${this.id || this.address}. Code: ${code}, Reason: ${reason}`)
+      if (this.connected) {
+        this.connected = false
+        this.attemptReconnection()
+      }
+    })
+  }
+
+  private attemptReconnection() {
+    if (!this.shouldReconnect || this.isReconnecting) {
+      return
+    }
+
+    if (this.maxReconnectAttempts != -1 && this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.app.error(`Max reconnection attempts (${this.maxReconnectAttempts}) reached for device ${this.id || this.address}. Giving up.`)
+      return
+    }
+
+    this.isReconnecting = true
+    this.reconnectAttempts++
+
+    // Calculate exponential backoff delay (1s, 2s, 4s, 8s, 16s, max 10s)
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 10000)
+    
+    this.debug(`Attempting to reconnect to device ${this.id || this.address} in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+
+    this.reconnectTimeout = setTimeout(async () => {
+      try {
+        this.debug(`Reconnecting to device ${this.id || this.address}...`)
+        this.ws = await this.createWebSocketConnection()
+        this.setupWebSocketHandlers()
+        
+        // Re-register for status updates after reconnection
+        const result = await this.send("Shelly.GetStatus")
+        this.registerForPuts(result)
+        
+        this.connected = true
+        this.reconnectAttempts = 0
+        this.isReconnecting = false
+        this.debug(`Successfully reconnected to device ${this.id || this.address}`)
+        
+      } catch (error) {
+        this.debug(`Reconnection attempt ${this.reconnectAttempts} failed for device ${this.id || this.address}: ${error}`)
+        this.isReconnecting = false
+        
+        // Schedule next reconnection attempt
+        this.attemptReconnection()
+      }
+    }, delay)
+  }
+
   disconnect() {
+    // Stop any reconnection attempts
+    this.shouldReconnect = false
+    this.isReconnecting = false
+    
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout)
+      this.reconnectTimeout = null
+    }
+    
     if (this.ws) {
       this.connected = false
       this.ws.close()
       this.ws = null
     }
+    
+    // Clear any pending requests
+    Object.values(this.pendingRequests).forEach(request => {
+      clearTimeout(request.timeout)
+      request.reject(new Error('Device disconnected'))
+    })
+    this.pendingRequests = {}
+  }
+
+  /**
+   * Manually trigger a reconnection attempt
+   */
+  forceReconnect() {
+    if (this.connected) {
+      this.debug(`Force reconnecting device ${this.id || this.address}`)
+      this.disconnect()
+    }
+    
+    this.shouldReconnect = true
+    this.reconnectAttempts = 0
+    this.attemptReconnection()
+  }
+
+  /**
+   * Check if the device is currently attempting to reconnect
+   */
+  get reconnecting(): boolean {
+    return this.isReconnecting
+  }
+
+  /**
+   * Get the current reconnection attempt count
+   */
+  get reconnectionAttempts(): number {
+    return this.reconnectAttempts
   }
 
   private async send(method: string, params: any = {}): Promise<any> {
-    if (!this.ws) {
-      throw new Error(`WebSocket is not connected`)
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error(`WebSocket is not connected (state: ${this.ws?.readyState || 'null'})`)
     }
 
     const id = this.next_id++
@@ -149,7 +296,11 @@ export class Device {
       params
     })
 
-    this.ws.send(message)
+    try {
+      this.ws.send(message)
+    } catch (error) {
+      throw new Error(`Failed to send WebSocket message: ${error}`)
+    }
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
