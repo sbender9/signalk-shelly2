@@ -62,7 +62,7 @@ export default function (app: any) {
 
           if (gen && Number(gen) >= 2) {
             const props = getDeviceProps(deviceId)
-            let device = new Device(app, plugin, props, data.addresses[0])
+            let device = new Device(app, plugin, props, data.addresses[0], data.host)
             try {
               discoveredDevices[deviceId] = device
               if (props?.enabled === false) {
@@ -162,7 +162,12 @@ export default function (app: any) {
               default: device.address,
               readOnly: true
             },
-
+            deviceHostname: {
+              type: 'string',
+              title: 'Hostname',
+              default: device.hostname,
+              readOnly: true
+            },
             enabled: {
               type: 'boolean',
               title: 'Enabled',

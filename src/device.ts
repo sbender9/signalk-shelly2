@@ -51,6 +51,7 @@ export class Device {
   connected: boolean = false
   numSwitches: number = 0
   address: string
+  hostname: string | undefined
   name: string | null = null
   model: string | null = null
   gen: number | null = null
@@ -68,11 +69,12 @@ export class Device {
   private shouldReconnect: boolean = true
   private isReconnecting: boolean = false
 
-  constructor (app: any, plugin: any, deviceSettings: any, address: string) {
+  constructor (app: any, plugin: any, deviceSettings: any, address: string, hostname?: string) {
     this.address = address
     this.deviceSettings = deviceSettings
     this.app = app
     this.plugin = plugin
+    this.hostname = hostname
 
     // Configure reconnection parameters from device settings or use defaults
     this.maxReconnectAttempts = deviceSettings?.maxReconnectAttempts ?? -1
@@ -86,7 +88,7 @@ export class Device {
   private createWebSocketConnection (): Promise<WebSocket> {
     return new Promise((resolve, reject) => {
       try {
-        const ws = new WebSocket(`ws://${this.address}/rpc`)
+        const ws = new WebSocket(`ws://${this.hostname || this.address}/rpc`)
 
         const onOpen = () => {
           this.debug(`Connected to device at ${this.address}`)
