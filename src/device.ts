@@ -49,7 +49,7 @@ export class Device {
   }
 
   private debug(...args: any[]) {
-    console.log(...args)
+    this.app.debug(...args)
   }
 
   async connect() : Promise<Device> {
@@ -67,7 +67,7 @@ export class Device {
 
         this.send("Shelly.GetDeviceInfo")
           .catch((error) => {
-            this.debug(`Error getting initial device information from ${this.address}: ${error}`)
+            this.app.error(`Error getting initial device information from ${this.address}: ${error}`)
             reject(error)
           })
           .then((deviceInfo) => {
@@ -77,12 +77,12 @@ export class Device {
             this.gen = deviceInfo.gen
 
             this.debug(`Initial device information retrieved successfully from ${this.address}: ${this.id} (${this.model}, Gen ${this.gen})`)
-            //console.log(JSON.stringify(deviceInfo, null, 2))
+            this.debug(JSON.stringify(deviceInfo, null, 2))
 
             this.send("Shelly.GetStatus")
               .then((result) => {
                 this.debug(`Initial device status retrieved successfully from ${this.id}`)
-                console.log(JSON.stringify(result, null, 2))
+                this.debug(JSON.stringify(result, null, 2))
                 this.getCapabilities(result)
                 this.registerForPuts(result)
                 this.sendDeltas(result)
