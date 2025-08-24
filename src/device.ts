@@ -803,9 +803,6 @@ const switchReadPaths = () => {
     },
     {
       key: `source`
-      /*meta: {
-          units: 'string'
-        }*/
     },
     {
       key: `apower`,
@@ -828,7 +825,43 @@ const switchReadPaths = () => {
       meta: {
         units: 'W'
       }
-    }
+    },
+    {
+      key: `freq`,
+      meta: {
+        units: 'Hz'
+      }
+    },
+    {
+      key: `aenergy`,
+      path: 'aenergy.total',
+      meta: {
+        units: 'Wh'
+      }
+    },
+    {
+      key: `aenergy`,
+      path: 'aenergy.by_minute',
+    },
+    {
+      key: `aenergy`,
+      path: 'aenergy.minute_ts',
+    },
+    {
+      key: `ret_aenergy`,
+      path: 'ret_aenergy.total',
+      meta: {
+        units: 'Wh'
+      }
+    },
+    {
+      key: `ret_aenergy`,
+      path: 'ret_aenergy.by_minute',
+    },
+    {
+      key: `ret_aenergy`,
+      path: 'ret_aenergy.minute_ts',
+    },
   ]
 }
 
