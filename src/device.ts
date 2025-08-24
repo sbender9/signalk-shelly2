@@ -459,118 +459,26 @@ export class Device {
             }
           })
         }
-
-        /* 
-        if (info.isDimmable) {
-          const dimmerKey = `brightness${i}`
-          values.push({
-            path: getSwitchPath(device, i, 'dimmingLevel'),
-            value: Number((device[dimmerKey] / 100).toFixed(2))
-          })
-        }
-        const powerKey = `power${i}`
-        if (typeof device[powerKey] !== 'undefined') {
-          values.push({
-            path: getSwitchPath(device, i, 'power'),
-            value: device[powerKey]
-          })
-        }
-          */
       }
     }
 
     readKeys.forEach((p: any) => {
       for (let i = 0; i < MAX_INPUTS; i++) {
         const key = p.key
+        const path = p.path ? `.${p.path}` : ''
         const converter = p.converter
         const val = status[`${key}:${i}`]
         if (val !== undefined) {
-          values.push({
-            path: this.getSwitchPath(i, `${key}${i}`),
-            value: converter ? converter(val) : val
-          })
-        }
-      }
-    })
-    /*
-    if ( this.numInputs > 0) {
-      for (let i = 0; i < this.numInputs; i++) {
-        const inputStatus = status[`input:${i}`]
-        if (inputStatus !== undefined) {
-          values.push({
-            path: this.getSwitchPath(i, `input${i}`),
-            value: inputStatus?.state ? true : false
-          })
-        }
-      }
-    }
-      */
-    /*
-    info.putPaths?.forEach((prop: any) => {
-      const path = `${getDevicePath(device)}.${prop.name || prop.deviceProp}`
-      let value
-      if (!prop.deviceProp) {
-        value = prop.getter(device)
-      } else {
-        value = prop.convertFrom
-          ? prop.convertFrom(device[prop.deviceProp], device)
-          : device[prop.deviceProp]
-      }
-      values.push({
-        path,
-        value
-      })
-    })
- 
-    info.readPaths?.forEach((info: any) => {
-      let path, key, converter
-      if (typeof info === 'string') {
-        path = key = info
-      } else {
-        key = info.key
-        path = info.path ? info.path : info.key
-        converter = info.converter
-      }
-      let val: any
-      if ( key.indexOf('.') !== -1 ) {
-        let split =  key.split('.')
-        val = device
-        split.forEach((k: any) => {
-          if ( typeof val === 'undefined' ) {
-            val = undefined
-          } else {
-            val = val[k]
+          const converted = converter ? converter(val) : val
+          if ( converted !== undefined ) {
+            values.push({
+              path: this.getSwitchPath(i, `${key}.${i}${path}`),
+              value: converted
+            })
           }
-        })
-      } else {
-        val = device[key]
-      }
-      if (val != null) {
-        values.push({
-          path: `${getDevicePath(device)}.${path}`,
-          value: converter ? converter(val) : val
-        })
-        if ( info.notification && (typeof deviceProps?.sendNotifications === 'undefined' || deviceProps?.sendNotifications) ) {
-          let state, message
-          if ( info.notification.handler(val) ) {
-            state = 'alarm'
-            message = info.notification.messageOn
-          } else {
-            state = 'normal'
-            message = info.notification.messageOff
-          }
-          values.push({
-            path: `notifications.${getDevicePath(device)}.${path}`,
-            value: {
-              state,
-              message: `${deviceProps?.devicePath || deviceKey(device)} ${message}`,
-              method: [ 'sound', 'visual']
-            }
-          })
         }
       }
     })
-      */
 
     if (values.length > 0) {
       this.debug('sending deltas %j', values)
@@ -628,30 +536,7 @@ export class Device {
             })
           }
         })
-        /*
-        if ( info.bankReadPaths ) {
-          let readPaths = info.bankReadPaths(`${info.switchKey}${i}`)
-          readPaths?.forEach((p: any) => {
-            if ( p.meta ) {
-              meta.push({
-                path: getSwitchPath(device, i, p.path),
-                value: p.meta
-              })
-            }
-          })
-        }
-        if (info.isDimmable) {
-          meta.push({
-            path: getSwitchPath(device, i, 'dimmingLevel'),
-            value: {
-              units: 'ratio',
-              displayName: switchProps?.displayName,
-              type: 'dimmer',
-              canDimWhenOff: info.canDimWhenOff
-            }
-          })
-        }
-          */
+
         if (switchProps?.displayName) {
           meta.push({
             path: this.getSwitchPath(i, null),
@@ -691,111 +576,23 @@ export class Device {
       })
     }
 
-    /*
-    if (this.numInputs > 0) {
-      for (let i = 0; i < this.numInputs; i++) {
-        const inputStatus = status[`input:${i}`]
-        if (inputStatus !== undefined) {
-          meta.push({
-            path: this.getSwitchPath(i, `input${i}`),
-            value: {units: 'bool'}
-          })
-        }
-      }
-    }
-      */
-
-    /*
-    info.putPaths?.forEach((prop: any) => {
-      if ( device.ttl ) {
-        meta.push({
-          path: `${devicePath}.${prop.name || prop.deviceProp}`,
-          value: {
-            timeout: device.ttl / 1000
+    readKeys.forEach((p: any) => {
+      for (let i = 0; i < MAX_INPUTS; i++) {
+        const key = p.key
+        const path = p.path ? `.${p.path}` : ''
+        const converter = p.converter
+        const val = status[`${key}:${i}`]
+        if (val !== undefined && p.meta) {
+          const converted = converter ? converter(val) : val
+          if ( converted !== undefined ) {
+            meta.push({
+              path: this.getSwitchPath(i, `${key}.${i}${path}`),
+              value: p.meta
+            })
           }
-        })
-      }
-      if (deviceProps?.displayName || prop.meta) {
-        meta.push({
-          path: `${devicePath}.${prop.name || prop.deviceProp}`,
-          value: {
-            ...prop.meta,
-            displayName: deviceProps?.displayName
-          }
-        })
-        if (deviceProps?.displayName) {
-          meta.push({
-            path: devicePath,
-            value: {
-              displayName: deviceProps?.displayName
-            }
-          })
-        }
-        if (deviceProps?.presets && deviceProps.presets.length > 0) {
-          meta.push({
-            path: `${devicePath}.preset`,
-            value: {
-              displayName: deviceProps?.displayName,
-              possibleValues: [
-                ...deviceProps.presets.map((preset: any) => {
-                  return {
-                    title: preset.name,
-                    value: preset.name
-                  }
-                })
-              ],
-              enum: [...deviceProps.presets.map((preset: any) => preset.name)]
-            }
-          })
         }
       }
     })
-   
-    info.readPaths?.forEach((prop: any) => {
-      let key, path
-      
-      if (typeof prop === 'string') {
-        path = key = prop
-      } else {
-        key = prop.key
-        path = prop.path ? prop.path : prop.key
-      }
-   
-      let split = key.split('.')
-      key = split[split.length-1]
-      
-      if ( device.ttl ) {
-        meta.push({
-          path: `${devicePath}.${path}`,
-          value: {
-            timeout: device.ttl / 1000
-          }
-        })
-      }
-      if ( typeof prop !== 'string' && prop.meta) {
-        meta.push({
-          path: `${devicePath}.${path}`,
-          value: prop.meta
-        })
-      }
-      if (key.startsWith('power')) {
-        meta.push({
-          path: `${devicePath}.${path}`,
-          value: {
-            units: 'W'
-          }
-        })
-      }
-      if (key.startsWith('externalTemperature') || key.startsWith('temperature') || key === 'deviceTemperature') {
-        meta.push({
-          path: `${devicePath}.${path}`,
-          value: {
-            units: 'K'
-          }
-        })
-      }
-    })
-  */
 
     if (meta.length) {
       this.debug('sending meta: %j', meta)
@@ -1046,10 +843,73 @@ const humidityConverter = (value: any) => {
 const readKeys = [
   {
     key: 'input',
+    path: 'state',
     converter: (v: any) => v.state,
     meta: {
       units: 'bool'
     }
+  },
+  {
+    key: 'input',
+    path: 'percent',
+    converter: (v: any) => v.percent != undefined ? v.percent / 100 : undefined,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'input',
+    path: 'xpercent',
+    converter: (v: any) => v.xpercent,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'input',
+    path: 'counts.total',
+    converter: (v: any) => v.counts?.total,
+  },
+  {
+    key: 'input',
+    path: 'counts.xtotal',
+    converter: (v: any) => v.counts?.xtotal,
+  },
+  {
+    key: 'input',
+    path: 'counts.xby_minute',
+    converter: (v: any) => v.counts?.xby_minute,
+  },
+    {
+    key: 'input',
+    path: 'counts.minute_ts',
+    converter: (v: any) => v.counts?.minute_ts,
+  },
+    {
+    key: 'input',
+    path: 'counts.by_minute',
+    converter: (v: any) => v.counts?.by_minute,
+  },
+  {
+    key: 'input',
+    path: 'counts.freq',
+    converter: (v: any) => v.counts?.freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+  {
+    key: 'input',
+    path: 'counts.xfreq',
+    converter: (v: any) => v.counts?.xfreq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+    {
+    key: 'input',
+    path: 'counts.errors',
+    converter: (v: any) => v.counts?.errors,
   },
   {
     key: 'temperature',
