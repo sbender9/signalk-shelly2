@@ -69,12 +69,14 @@ export class Device {
   private shouldReconnect: boolean = true
   private isReconnecting: boolean = false
 
-  constructor (app: any, plugin: any, deviceSettings: any, address: string, hostname?: string) {
+  constructor (app: any, plugin: any, deviceSettings: any, id: string, address: string, hostname?: string, name?: string = null) {
     this.address = address
     this.deviceSettings = deviceSettings
     this.app = app
     this.plugin = plugin
     this.hostname = hostname
+    this.name = name
+    this.id = id
 
     // Configure reconnection parameters from device settings or use defaults
     this.maxReconnectAttempts = deviceSettings?.maxReconnectAttempts ?? -1
@@ -349,7 +351,7 @@ export class Device {
 
   async poll () {
     if (!this.connected) {
-      throw new Error(`Device ${this.id || this.address} is not connected`)
+      return
     }
 
     const status = await this.send('Shelly.GetStatus')
