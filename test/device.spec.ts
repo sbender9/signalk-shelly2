@@ -81,9 +81,9 @@ describe('Device Class Unit Tests', () => {
   describe('Device Creation', () => {
     it('should create a device with correct initial properties', () => {
       const { Device } = require('../dist/device')
-      const device = new Device(mockApp, mockPlugin, deviceSettings, '192.168.1.100')
+      const device = new Device(mockApp, mockPlugin, deviceSettings, '12345', '192.168.1.100')
       
-      expect(device.id).to.be.null
+      expect(device.id).to.equal('12345')
       expect(device.connected).to.be.false
       expect(device.numSwitches).to.equal(0)
       expect(device.address).to.equal('192.168.1.100')
@@ -98,7 +98,7 @@ describe('Device Class Unit Tests', () => {
 
     beforeEach(() => {
       const { Device } = require('../dist/device')
-      device = new Device(mockApp, mockPlugin, deviceSettings, '192.168.1.100')
+      device = new Device(mockApp, mockPlugin, deviceSettings, 'shellyplusht-7c87ce63b954', '192.168.1.100')
       
       // Simulate connected state
       device.connected = true
@@ -343,7 +343,7 @@ describe('Device Class Unit Tests', () => {
       }
       
       const { Device } = require('../dist/device')
-      const device = new Device(mockApp, mockPlugin, minimalSettings, '192.168.1.100')
+      const device = new Device(mockApp, mockPlugin, minimalSettings, '123456', '192.168.1.100')
       
       expect(device.address).to.equal('192.168.1.100')
       expect(device.connected).to.be.false
