@@ -28,7 +28,6 @@ export default function (app: any) {
   let sentMetaDevices: any = {}
   let props: any
   let onStop: any = []
-  let startedOnce = false
   let stopped = true
   let configuredDevices: { [key: string]: Device } = {}
   let discoveredDevices: { [key: string]: Device } = {}
