@@ -87,7 +87,7 @@ describe('Device Class Unit Tests', () => {
       expect(device.connected).to.be.false
       expect(device.numSwitches).to.equal(0)
       expect(device.address).to.equal('192.168.1.100')
-      expect(device.name).to.be.null
+      expect(device.name).to.be.undefined
       expect(device.model).to.be.null
       expect(device.gen).to.be.null
     })
