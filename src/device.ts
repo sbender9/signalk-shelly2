@@ -69,7 +69,15 @@ export class Device {
   private shouldReconnect: boolean = true
   private isReconnecting: boolean = false
 
-  constructor (app: any, plugin: any, deviceSettings: any, id: string, address: string, hostname?: string, name?: string) {
+  constructor (
+    app: any,
+    plugin: any,
+    deviceSettings: any,
+    id: string,
+    address: string,
+    hostname?: string,
+    name?: string
+  ) {
     this.address = address
     this.deviceSettings = deviceSettings
     this.app = app
@@ -472,7 +480,7 @@ export class Device {
         const val = status[`${key}:${i}`]
         if (val !== undefined) {
           const converted = converter ? converter(val) : val
-          if ( converted !== undefined ) {
+          if (converted !== undefined) {
             values.push({
               path: this.getSwitchPath(i, `${key}.${i}${path}`),
               value: converted
@@ -586,7 +594,7 @@ export class Device {
         const val = status[`${key}:${i}`]
         if (val !== undefined && p.meta) {
           const converted = converter ? converter(val) : val
-          if ( converted !== undefined ) {
+          if (converted !== undefined) {
             meta.push({
               path: this.getSwitchPath(i, `${key}.${i}${path}`),
               value: p.meta
@@ -843,11 +851,11 @@ const switchReadPaths = () => {
     },
     {
       key: `aenergy`,
-      path: 'aenergy.by_minute',
+      path: 'aenergy.by_minute'
     },
     {
       key: `aenergy`,
-      path: 'aenergy.minute_ts',
+      path: 'aenergy.minute_ts'
     },
     {
       key: `ret_aenergy`,
@@ -858,12 +866,12 @@ const switchReadPaths = () => {
     },
     {
       key: `ret_aenergy`,
-      path: 'ret_aenergy.by_minute',
+      path: 'ret_aenergy.by_minute'
     },
     {
       key: `ret_aenergy`,
-      path: 'ret_aenergy.minute_ts',
-    },
+      path: 'ret_aenergy.minute_ts'
+    }
   ]
 }
 
@@ -887,7 +895,8 @@ const readKeys = [
   {
     key: 'input',
     path: 'percent',
-    converter: (v: any) => v.percent != undefined ? v.percent / 100 : undefined,
+    converter: (v: any) =>
+      v.percent != undefined ? v.percent / 100 : undefined,
     meta: {
       units: 'ratio'
     }
@@ -903,27 +912,27 @@ const readKeys = [
   {
     key: 'input',
     path: 'counts.total',
-    converter: (v: any) => v.counts?.total,
+    converter: (v: any) => v.counts?.total
   },
   {
     key: 'input',
     path: 'counts.xtotal',
-    converter: (v: any) => v.counts?.xtotal,
+    converter: (v: any) => v.counts?.xtotal
   },
   {
     key: 'input',
     path: 'counts.xby_minute',
-    converter: (v: any) => v.counts?.xby_minute,
+    converter: (v: any) => v.counts?.xby_minute
   },
-    {
+  {
     key: 'input',
     path: 'counts.minute_ts',
-    converter: (v: any) => v.counts?.minute_ts,
+    converter: (v: any) => v.counts?.minute_ts
   },
-    {
+  {
     key: 'input',
     path: 'counts.by_minute',
-    converter: (v: any) => v.counts?.by_minute,
+    converter: (v: any) => v.counts?.by_minute
   },
   {
     key: 'input',
@@ -941,10 +950,10 @@ const readKeys = [
       units: 'Hz'
     }
   },
-    {
+  {
     key: 'input',
     path: 'counts.errors',
-    converter: (v: any) => v.counts?.errors,
+    converter: (v: any) => v.counts?.errors
   },
   {
     key: 'temperature',

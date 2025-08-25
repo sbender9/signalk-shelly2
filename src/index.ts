@@ -63,7 +63,14 @@ export default function (app: any) {
 
           if (gen && Number(gen) >= 2) {
             const props = getDeviceProps(deviceId)
-            let device = new Device(app, plugin, props, deviceId, data.addresses[0], data.host)
+            let device = new Device(
+              app,
+              plugin,
+              props,
+              deviceId,
+              data.addresses[0],
+              data.host
+            )
             try {
               discoveredDevices[deviceId] = device
               if (props?.enabled === false) {
@@ -80,19 +87,29 @@ export default function (app: any) {
         }
       })
 
-      if ( props ) {
+      if (props) {
         Object.keys(props).forEach(key => {
-          if ( key.startsWith('Device ID ') ) {
+          if (key.startsWith('Device ID ')) {
             const id = key.slice('Device ID '.length)
-            if ( discoveredDevices[id] === undefined ) {
+            if (discoveredDevices[id] === undefined) {
               const devProps = props[key]
-              configuredDevices[id] = new Device(app, plugin, devProps, devProps.id, devProps.deviceAddress, devProps.deviceHostname, devProps.deviceName)
-              if (discoveredDevices[id] === undefined && (devProps?.enabled === undefined || devProps?.enabled)) {
-                configuredDevices[id].connect()
-                  .catch(error => {
-                    console.error(`Failed to connect to configured device ${id}`)
-                    console.error(error)
-                  })
+              configuredDevices[id] = new Device(
+                app,
+                plugin,
+                devProps,
+                devProps.id,
+                devProps.deviceAddress,
+                devProps.deviceHostname,
+                devProps.deviceName
+              )
+              if (
+                discoveredDevices[id] === undefined &&
+                (devProps?.enabled === undefined || devProps?.enabled)
+              ) {
+                configuredDevices[id].connect().catch(error => {
+                  console.error(`Failed to connect to configured device ${id}`)
+                  console.error(error)
+                })
               }
             }
           }
@@ -101,18 +118,20 @@ export default function (app: any) {
 
       if (props?.poll > 0) {
         pollInterval = setInterval(() => {
-          Object.values({...discoveredDevices, ...configuredDevices}).forEach(async (device: Device) => {
-            if (props?.enabled !== false) {
-              try {
-                await device.poll()
-              } catch (error) {
-                console.error(
-                  `Failed to poll device ${device.id || device.address}`
-                )
-                console.error(error)
+          Object.values({ ...discoveredDevices, ...configuredDevices }).forEach(
+            async (device: Device) => {
+              if (props?.enabled !== false) {
+                try {
+                  await device.poll()
+                } catch (error) {
+                  console.error(
+                    `Failed to poll device ${device.id || device.address}`
+                  )
+                  console.error(error)
+                }
               }
             }
-          })
+          )
         }, props.poll)
       }
     },
@@ -156,13 +175,23 @@ export default function (app: any) {
 
       let devices = Object.values(discoveredDevices)
 
-      if ( props ) {
+      if (props) {
         Object.keys(props).forEach(key => {
-          if ( key.startsWith('Device ID ') ) {
+          if (key.startsWith('Device ID ')) {
             const id = key.slice('Device ID '.length)
-            if ( discoveredDevices[id] === undefined) {
+            if (discoveredDevices[id] === undefined) {
               const devProps = props[key]
-              devices.push(new Device(app, plugin, devProps, devProps.deviceId, devProps.deviceAddress, devProps.deviceHostname, devProps.deviceName))
+              devices.push(
+                new Device(
+                  app,
+                  plugin,
+                  devProps,
+                  devProps.deviceId,
+                  devProps.deviceAddress,
+                  devProps.deviceHostname,
+                  devProps.deviceName
+                )
+              )
             }
           }
         })
@@ -171,9 +200,7 @@ export default function (app: any) {
       devices.forEach(device => {
         debug(`adding Device ID ${deviceKey(device)} to schema`)
 
-        let props: any = (schema.properties[
-          `Device ID ${device.id}`
-        ] = {
+        let props: any = (schema.properties[`Device ID ${device.id}`] = {
           type: 'object',
           properties: {
             deviceId: {
