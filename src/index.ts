@@ -30,12 +30,13 @@ export default function (app: any) {
   let onStop: any = []
   let startedOnce = false
   let stopped = true
+  let configuredDevices: { [key: string]: Device } = {}
   let discoveredDevices: { [key: string]: Device } = {}
   let browser: any
   let pollInterval: any = null
 
   const plugin: Plugin = {
-    start: function (properties: any) {
+    start: (properties: any) => {
       props = properties
 
       browser = mdns.createBrowser(mdns.tcp(SERVICE_NAME))
@@ -62,7 +63,7 @@ export default function (app: any) {
 
           if (gen && Number(gen) >= 2) {
             const props = getDeviceProps(deviceId)
-            let device = new Device(app, plugin, props, data.addresses[0], data.host)
+            let device = new Device(app, plugin, props, deviceId, data.addresses[0], data.host)
             try {
               discoveredDevices[deviceId] = device
               if (props?.enabled === false) {
@@ -79,9 +80,28 @@ export default function (app: any) {
         }
       })
 
+      if ( props ) {
+        Object.keys(props).forEach(key => {
+          if ( key.startsWith('Device ID ') ) {
+            const id = key.slice('Device ID '.length)
+            if ( discoveredDevices[id] === undefined ) {
+              const devProps = props[key]
+              configuredDevices[id] = new Device(app, plugin, devProps, devProps.id, devProps.deviceAddress, devProps.deviceHostname, devProps.deviceName)
+              if (discoveredDevices[id] === undefined && (devProps?.enabled === undefined || devProps?.enabled)) {
+                configuredDevices[id].connect()
+                  .catch(error => {
+                    console.error(`Failed to connect to configured device ${id}`)
+                    console.error(error)
+                  })
+              }
+            }
+          }
+        })
+      }
+
       if (props?.poll > 0) {
         pollInterval = setInterval(() => {
-          Object.values(discoveredDevices).forEach(async (device: Device) => {
+          Object.values({...discoveredDevices, ...configuredDevices}).forEach(async (device: Device) => {
             if (props?.enabled !== false) {
               try {
                 await device.poll()
@@ -136,24 +156,42 @@ export default function (app: any) {
 
       let devices = Object.values(discoveredDevices)
 
+      if ( props ) {
+        Object.keys(props).forEach(key => {
+          if ( key.startsWith('Device ID ') ) {
+            const id = key.slice('Device ID '.length)
+            if ( discoveredDevices[id] === undefined) {
+              const devProps = props[key]
+              devices.push(new Device(app, plugin, devProps, devProps.deviceId, devProps.deviceAddress, devProps.deviceHostname, devProps.deviceName))
+            }
+          }
+        })
+      }
+
       devices.forEach(device => {
         debug(`adding Device ID ${deviceKey(device)} to schema`)
 
         let props: any = (schema.properties[
-          `Device ID ${deviceKey(device)}`
+          `Device ID ${device.id}`
         ] = {
           type: 'object',
           properties: {
+            deviceId: {
+              type: 'string',
+              title: 'Device ID',
+              default: device.id,
+              readOnly: true
+            },
             deviceName: {
               type: 'string',
               title: 'Name',
-              default: device.name,
+              default: device.name || '',
               readOnly: true
             },
             deviceModel: {
               type: 'string',
               title: 'Model',
-              default: device.model,
+              default: device.model || '',
               readOnly: true
             },
             deviceAddress: {
@@ -276,7 +314,7 @@ export default function (app: any) {
         }
           */
       })
-
+      /*
       schema.properties.nextGenPassswords = {
         title: 'Next Gen Device Passwords',
         type: 'array',
@@ -295,6 +333,7 @@ export default function (app: any) {
           }
         }
       }
+        */
 
       return schema
     },
