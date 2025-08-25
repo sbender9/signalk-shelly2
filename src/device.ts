@@ -88,12 +88,14 @@ export class Device {
         const onError = (error: any) => {
           ws.removeListener('open', onOpen)
           reject(error)
+          this.attemptReconnection(
         }
 
         ws.once('open', onOpen)
         ws.once('error', onError)
       } catch (error) {
         reject(error)
+        this.attemptReconnection()
       }
     })
   }
