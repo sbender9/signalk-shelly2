@@ -13,28 +13,6 @@
  * limitations under the License.
  */
 
-/**
- * Shelly Device WebSocket Connection Manager
- *
- * This module handles WebSocket connections to Shelly devices with automatic reconnection support.
- *
- * Features:
- * - Automatic reconnection with exponential backoff (1s, 2s, 4s, 8s, 16s, max 30s)
- * - Configurable maximum reconnection attempts (default: 10)
- * - Proper cleanup of pending requests on disconnection
- * - Manual reconnection triggering via forceReconnect()
- * - Connection state monitoring via reconnecting and reconnectionAttempts properties
- *
- * The reconnection logic is triggered automatically when:
- * - WebSocket errors occur
- * - WebSocket connection is closed unexpectedly
- *
- * Reconnection is stopped when:
- * - disconnect() is called explicitly
- * - Maximum reconnection attempts are reached
- * - The device is manually stopped
- */
-
 import WebSocket from 'ws'
 import camelCase from 'camelcase'
 
@@ -50,6 +28,7 @@ export class Device {
   id: string | null = null
   connected: boolean = false
   numSwitches: number = 0
+  numLights: number = 0
   address: string
   hostname: string | undefined
   name: string | undefined = undefined
@@ -382,11 +361,41 @@ export class Device {
     return res
   }
 
+  async setLight (value: any, lightIdx: number) {
+    const expected =
+      value === 1 || value === 'on' || value === 'true' || value === true
+    await this.send('Light.Set', { id: lightIdx, on: expected })
+    const status = await this.getLight(lightIdx)
+    if (status.output !== expected) {
+      throw new Error(`Failed to set light ${lightIdx} to ${expected}`)
+    }
+    this.sendDeltas({ [`light:${lightIdx}`]: status })
+  }
+
+  async setDimmer (value: any, lightIdx: number) {
+    const expected = Math.round(value * 100)
+    await this.send('Light.Set', { id: lightIdx, brightness: expected })
+    const status = await this.getLight(lightIdx)
+    if (status.brightness !== expected) {
+      throw new Error(`Failed to set light ${lightIdx} to ${expected}`)
+    }
+    this.sendDeltas({ [`light:${lightIdx}`]: status })
+  }
+
+  async getLight (lightIdx: number): Promise<any> {
+    const res = await this.send('Light.GetStatus', { id: lightIdx })
+    return res
+  }
+
   private getCapabilities (status: any) {
     this.numSwitches = 0
+    this.numLights = 0
     for (let i = 0; i < 10; i++) {
       if (status[`switch:${i}`]) {
         this.numSwitches++
+      }
+      if (status[`light:${i}`]) {
+        this.numLights++
       }
     }
   }
@@ -405,12 +414,29 @@ export class Device {
       : undefined
   }
 
+  private getLightProps (light: number) {
+    return this.deviceSettings
+      ? this.deviceSettings[`light${light}`]
+      : undefined
+  }
+
   private getSwitchPath (relay: number, key: any = 'state') {
     const switchProps = this.getSwitchProps(relay)
 
     let path = this.getDevicePath()
     if (this.numSwitches > 1) {
       path = path + `.${switchProps?.switchPath || relay}`
+    }
+
+    return path + (key ? '.' + key : '')
+  }
+
+  private getLightPath (light: number, key: any = 'state') {
+    const lightProps = this.getLightProps(light)
+
+    let path = this.getDevicePath()
+    if (this.numLights > 1) {
+      path = path + `.${lightProps?.lightPath || light}`
     }
 
     return path + (key ? '.' + key : '')
@@ -464,6 +490,43 @@ export class Device {
             if (val !== undefined) {
               values.push({
                 path: this.getSwitchPath(i, path),
+                value: converter ? converter(val) : val
+              })
+            }
+          })
+        }
+      }
+    }
+
+    if (this.numLights > 0) {
+      for (let i = 0; i < this.numLights; i++) {
+        const lightProps = this.getLightProps(i)
+
+        if (lightProps?.enabled === false) {
+          continue
+        }
+
+        const lightStatus = status[`light:${i}`]
+
+        if (lightStatus !== undefined) {
+          values.push({
+            path: this.getLightPath(i),
+            value: lightStatus?.output ? true : false
+          })
+
+          values.push({
+            path: this.getLightPath(i, 'dimmingLevel'),
+            value: lightStatus?.brightness / 100
+          })
+
+          let readPaths = switchReadPaths()
+          readPaths?.forEach((p: any) => {
+            const path = p.path || p.key
+            const converter = p.converter
+            const val = lightStatus[p.key]
+            if (val !== undefined) {
+              values.push({
+                path: this.getLightPath(i, path),
                 value: converter ? converter(val) : val
               })
             }
@@ -555,15 +618,6 @@ export class Device {
             }
           })
         }
-        const powerKey = `power${i}`
-        if (status[powerKey] !== 'undefined') {
-          meta.push({
-            path: this.getSwitchPath(i, 'power'),
-            value: {
-              units: 'W'
-            }
-          })
-        }
       }
     } else {
       meta.push({
@@ -579,6 +633,78 @@ export class Device {
         if (p.meta && status[`switch:${0}`][p.key] !== undefined) {
           meta.push({
             path: this.getSwitchPath(0, p.path || p.key),
+            value: p.meta,
+            displayName: this.deviceSettings?.displayName || this.name
+          })
+        }
+      })
+    }
+
+    if (this.numLights > 1) {
+      for (let i = 0; i < this.numLights; i++) {
+        const lightProps = this.getLightProps(i)
+
+        if (lightProps?.enabled === false) {
+          continue
+        }
+
+        meta.push({
+          path: this.getLightPath(i),
+          value: {
+            units: 'bool',
+            displayName: lightProps?.displayName
+          }
+        })
+
+        meta.push({
+          path: this.getLightPath(i, 'dimmingLevel'),
+          value: {
+            units: 'ratio',
+            displayName: lightProps?.displayName
+          }
+        })
+
+        let readPaths = switchReadPaths()
+        readPaths?.forEach((p: any) => {
+          if (p.meta && status[`light:${i}`][p.key] !== undefined) {
+            meta.push({
+              path: this.getLightPath(i, p.path || p.key),
+              value: p.meta
+            })
+          }
+        })
+
+        if (lightProps?.displayName) {
+          meta.push({
+            path: this.getLightPath(i, null),
+            value: {
+              displayName: lightProps?.displayName
+            }
+          })
+        }
+      }
+    } else {
+      meta.push({
+        path: this.getLightPath(0),
+        value: {
+          units: 'bool',
+          displayName: this.deviceSettings?.displayName || this.name
+        }
+      })
+
+      meta.push({
+        path: this.getLightPath(0, 'dimmingLevel'),
+        value: {
+          units: 'ratio',
+          displayName: this.deviceSettings?.displayName
+        }
+      })
+
+      let readPaths = switchReadPaths()
+      readPaths?.forEach((p: any) => {
+        if (p.meta && status[`light:${0}`][p.key] !== undefined) {
+          meta.push({
+            path: this.getLightPath(0, p.path || p.key),
             value: p.meta,
             displayName: this.deviceSettings?.displayName || this.name
           })
@@ -642,131 +768,53 @@ export class Device {
             )
           }
         )
-
-        /*
-          if ( info.bankReadPaths ) {
-            let readPaths = info.bankReadPaths(`${info.switchKey}${i}`)
-            readPaths?.forEach((prop: any) => {
-              let key, path
-        
-              if (typeof prop === 'string') {
-                path = key = info
-              } else {
-                key = prop.key
-                path = prop.path ? prop.path : prop.key
-              }
-              
-              let split = key.split('.')
-              let attrName = split[split.length-1]
-              
-              if ( split.length > 1 ) {
-                if ( device[split[0]] ) {
-                  device[split[0]].on(`change:${attrName}`, (newValue: any) => {
-                    if ( !stopped ) {
-                      debug(
-                        `${device.id} ${key} changed to ${JSON.stringify(newValue)}`
-                      )
-                      sendDeltas(device)
-                    }
-                  })
-                }
-              } else {
-                device.on(`change:${attrName}`, (newValue: any) => {
-                  if ( !stopped ) {
-                    debug(
-                      `${device.id} ${key} changed to ${newValue}`
-                    )
-                    sendDeltas(device)
-                  }
-                })
-              }
-            })
-          }
-  
-          if (info.isDimmable) {
-            const dimmerPath = getSwitchPath(device, i, 'dimmingLevel')
-  
-            app.registerPutHandler(
-              'vessels.self',
-              dimmerPath,
-              (context: string, path: string, value: any, cb: any) => {
-                return valueHandler(
-                  context,
-                  path,
-                  value,
-                  device,
-                  (device: any, value: any) => {
-                    return info.dimmerSetter(device, value, i)
-                  },
-                  cb
-                )
-              }
-            )
-          }
-            */
       }
     }
 
-    /*
-      info.putPaths?.forEach((prop: any) => {
-        const path = `${getDevicePath(device)}.${prop.name || prop.deviceProp}`
-        app.registerPutHandler(
+    if (this.numLights > 0) {
+      for (let i = 0; i < this.numLights; i++) {
+        const lightProps = this.getLightProps(i)
+
+        if (lightProps?.enabled === false) {
+          continue
+        }
+
+        const path = this.getLightPath(i)
+
+        this.app.registerPutHandler(
           'vessels.self',
           path,
           (context: string, path: string, value: any, cb: any) => {
-            return valueHandler(context, path, value, device, prop.setter, cb)
+            return this.valueHandler(
+              context,
+              path,
+              value,
+              (device: Device, value: any) => {
+                return device.setLight(value, i)
+              },
+              cb
+            )
           }
         )
-        if ( info.nextGen ) {
-          device[prop.deviceProp].on('change:output', (newValue:any) => {
-            if ( !stopped ) {
-              debug(
-                `${device.id} ${prop.deviceProp} changed to ${newValue}`
-              )
-              sendDeltas(device)
-            }
-          })
-        }
-      })
-  
-      info.readPaths?.forEach((prop: any) => {
-        if ( info.nextGen ) {
-          let key, path
-        
-          if (typeof prop === 'string') {
-            path = key = info
-          } else {
-            key = prop.key
-            path = prop.path ? prop.path : prop.key
+        const dimmerPath = this.getLightPath(i, 'dimmingLevel')
+
+        this.app.registerPutHandler(
+          'vessels.self',
+          dimmerPath,
+          (context: string, path: string, value: any, cb: any) => {
+            return this.valueHandler(
+              context,
+              path,
+              value,
+              (device: any, value: any) => {
+                return this.setDimmer(value, i)
+              },
+              cb
+            )
           }
-  
-          let split = key.split('.')
-          let attrName = split[split.length-1]
-  
-          if ( split.length > 1 ) {
-            if ( device[split[0]] ) {
-              device[split[0]].on(`change:${attrName}`, (newValue: any) => {
-                if ( !stopped ) {
-                  debug(
-                    `${device.id} ${key} changed to ${newValue}`
-                  )
-                  sendDeltas(device)
-                }
-              })
-            }
-          } else {
-            device.on(`change:${attrName}`, (newValue: any) => {
-              if ( !stopped ) {
-                debug(
-                  `${device.id} ${key} changed to ${newValue}`
-                )
-                sendDeltas(device)
-              }
-            })
-          }
-        }
-        
-      })*/
+        )
+      }
+    }
 
     return true
   }
