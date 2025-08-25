@@ -52,7 +52,7 @@ export class Device {
   numSwitches: number = 0
   address: string
   hostname: string | undefined
-  name: string | null = null
+  name: string | undefined = undefined
   model: string | null = null
   gen: number | null = null
 
@@ -69,7 +69,7 @@ export class Device {
   private shouldReconnect: boolean = true
   private isReconnecting: boolean = false
 
-  constructor (app: any, plugin: any, deviceSettings: any, id: string, address: string, hostname?: string, name?: string = null) {
+  constructor (app: any, plugin: any, deviceSettings: any, id: string, address: string, hostname?: string, name?: string) {
     this.address = address
     this.deviceSettings = deviceSettings
     this.app = app

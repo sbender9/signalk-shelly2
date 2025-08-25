@@ -36,7 +36,7 @@ export default function (app: any) {
   let pollInterval: any = null
 
   const plugin: Plugin = {
-    start: (properties: any) {
+    start: (properties: any) => {
       props = properties
 
       browser = mdns.createBrowser(mdns.tcp(SERVICE_NAME))
@@ -45,7 +45,7 @@ export default function (app: any) {
         browser.discover()
       })
 
-      browser.on('updatex', async (data: any) => {
+      browser.on('update', async (data: any) => {
         if (
           Array.isArray(data.type) &&
           data.type[0].name === SERVICE_NAME &&
