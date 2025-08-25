@@ -17,7 +17,7 @@ import camelCase from 'camelcase'
 import path from 'path'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const mdns = require('mdns-js')
-import { Device } from './device'
+import { Device, supportedComponents } from './device'
 
 const SERVICE_NAME = 'shelly'
 const deviceKey = (device: any) => device.id
@@ -29,8 +29,7 @@ export default function (app: any) {
   let props: any
   let onStop: any = []
   let stopped = true
-  let configuredDevices: { [key: string]: Device } = {}
-  let discoveredDevices: { [key: string]: Device } = {}
+  let devices: { [key: string]: Device } = {}
   let browser: any
   let pollInterval: any = null
 
@@ -52,7 +51,7 @@ export default function (app: any) {
         ) {
           let deviceId = data.fullname.split('.', 1)[0]
 
-          if (discoveredDevices[deviceId]) {
+          if (devices[deviceId]) {
             return
           }
 
@@ -71,7 +70,7 @@ export default function (app: any) {
               data.host
             )
             try {
-              discoveredDevices[deviceId] = device
+              devices[deviceId] = device
               if (props?.enabled === false) {
                 return
               }
@@ -89,23 +88,22 @@ export default function (app: any) {
       if (props) {
         Object.keys(props).forEach(key => {
           if (key.startsWith('Device ID ')) {
-            const id = key.slice('Device ID '.length)
-            if (discoveredDevices[id] === undefined) {
-              const devProps = props[key]
-              configuredDevices[id] = new Device(
+            const devProps = props[key]
+            const id = devProps.deviceId
+            if (devices[id] === undefined) {
+              devices[id] = new Device(
                 app,
                 plugin,
                 devProps,
-                devProps.id,
+                devProps.deviceId,
                 devProps.deviceAddress,
                 devProps.deviceHostname,
                 devProps.deviceName
               )
               if (
-                discoveredDevices[id] === undefined &&
                 (devProps?.enabled === undefined || devProps?.enabled)
               ) {
-                configuredDevices[id].connect().catch(error => {
+                devices[id].connect().catch(error => {
                   console.error(`Failed to connect to configured device ${id}`)
                   console.error(error)
                 })
@@ -117,7 +115,7 @@ export default function (app: any) {
 
       if (props?.poll > 0) {
         pollInterval = setInterval(() => {
-          Object.values({ ...discoveredDevices, ...configuredDevices }).forEach(
+          Object.values(devices).forEach(
             async (device: Device) => {
               if (props?.enabled !== false) {
                 try {
@@ -140,10 +138,10 @@ export default function (app: any) {
       onStop.forEach((f: any) => f())
       onStop = []
       stopped = true
-      Object.values(discoveredDevices).forEach((device: any) => {
+      Object.values(devices).forEach((device: any) => {
         device.disconnect()
       })
-      discoveredDevices = {}
+      devices = {}
       if (browser) {
         browser.stop()
         browser = null
@@ -172,32 +170,8 @@ export default function (app: any) {
         }
       }
 
-      let devices = Object.values(discoveredDevices)
-
-      if (props) {
-        Object.keys(props).forEach(key => {
-          if (key.startsWith('Device ID ')) {
-            const id = key.slice('Device ID '.length)
-            if (discoveredDevices[id] === undefined) {
-              const devProps = props[key]
-              devices.push(
-                new Device(
-                  app,
-                  plugin,
-                  devProps,
-                  devProps.deviceId,
-                  devProps.deviceAddress,
-                  devProps.deviceHostname,
-                  devProps.deviceName
-                )
-              )
-            }
-          }
-        })
-      }
-
-      devices.forEach(device => {
-        debug(`adding Device ID ${deviceKey(device)} to schema`)
+      Object.values(devices).forEach(device => {
+        //debug(`adding Device ID ${deviceKey(device)} to schema`)
 
         let props: any = (schema.properties[`Device ID ${device.id}`] = {
           type: 'object',
@@ -252,94 +226,42 @@ export default function (app: any) {
           }
         })
 
-        if (device.numSwitches > 1) {
-          for (let i = 0; i < device.numSwitches; i++) {
-            const key = `switch${i}`
-            let defaultPath
-            let description
-            defaultPath = i.toString()
-            description =
-              'Used to generate the path name, ie electrical.switches.${bankPath}.${switchPath}.state'
+        supportedComponents.forEach(component => {
+          const count = device.componentCounts[component] || 0
+          if (count > 1) {
+            for (let i = 0; i < count; i++) {
+              const key = `${component}${i}`
+              let defaultPath
+              let description
+              defaultPath = i.toString()
+              description =
+                'Used to generate the path name, ie. electrical.switches.${bankPath}.${switchPath}.state'
 
-            props.properties[key] = {
-              type: 'object',
-              properties: {
-                switchPath: {
-                  type: 'string',
-                  title: 'Switch Path',
-                  default: defaultPath,
-                  description
-                },
-                displayName: {
-                  type: 'string',
-                  title: 'Display Name (meta)'
-                },
-                enabled: {
-                  type: 'boolean',
-                  title: 'Enabled',
-                  default: true
+              props.properties[key] = {
+                type: 'object',
+                properties: {
+                  path: {
+                    type: 'string',
+                    title: 'Path',
+                    default: defaultPath,
+                    description
+                  },
+                  displayName: {
+                    type: 'string',
+                    title: 'Display Name (meta)'
+                  },
+                  enabled: {
+                    type: 'boolean',
+                    title: 'Enabled',
+                    default: true
+                  }
                 }
               }
             }
           }
-        }
-
-        /*
-        if ( info.readPaths?.find((prop:any) => {
-          return typeof prop !== 'string' && prop.notification
-        }) ) {
-          props.properties.sendNotifications = { 
-            type: 'boolean',
-            title: 'Send Notifications',
-            default: true
-          }
-        }
-        
-        if (info.isRGBW) {
-          props.properties.presets = {
-            title: 'Presets',
-            type: 'array',
-            items: {
-              type: 'object',
-              required: ['name', 'red', 'green', 'blue', 'white', 'bright'],
-              properties: {
-                name: {
-                  type: 'string',
-                  title: 'Name'
-                },
-                red: {
-                  type: 'number',
-                  title: 'Red',
-                  default: 255
-                },
-                green: {
-                  type: 'number',
-                  title: 'Green',
-                  default: 255
-                },
-                blue: {
-                  type: 'number',
-                  title: 'Blue',
-                  default: 255
-                },
-                white: {
-                  type: 'number',
-                  title: 'White',
-                  default: 255
-                },
-                bright: {
-                  type: 'number',
-                  title: 'Brightness',
-                  description:
-                    'Number between 1-100. Set to 0 to preserve current brightness',
-                  default: 100
-                }
-              }
-            }
-          }
-        }
-          */
+        })
       })
+
       /*
       schema.properties.nextGenPassswords = {
         title: 'Next Gen Device Passwords',
@@ -366,9 +288,8 @@ export default function (app: any) {
 
     uiSchema: () => {
       const uiSchema: any = {}
-      let devices = Object.values(discoveredDevices)
 
-      devices.forEach((device: any) => {
+      Object.values(devices).forEach((device: any) => {
         uiSchema[`Device ID ${deviceKey(device)}`] = {
           password: {
             'ui:widget': 'password'
@@ -378,17 +299,6 @@ export default function (app: any) {
 
       return uiSchema
     }
-  }
-
-  function filterEnabledDevices (devices: any) {
-    return Object.values(discoveredDevices).filter((device: any) => {
-      const deviceProps = getDeviceProps(device)
-      return (
-        !deviceProps ||
-        typeof deviceProps.enabled === 'undefined' ||
-        deviceProps.enabled
-      )
-    })
   }
 
   function getDeviceProps (id: string) {
