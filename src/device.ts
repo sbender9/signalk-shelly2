@@ -619,7 +619,7 @@ export class Device {
           })
         }
       }
-    } else {
+    } else if (this.numSwitches === 1) {
       meta.push({
         path: this.getSwitchPath(0),
         value: {
@@ -683,7 +683,7 @@ export class Device {
           })
         }
       }
-    } else {
+    } else if ( this.numLights === 1) {
       meta.push({
         path: this.getLightPath(0),
         value: {
