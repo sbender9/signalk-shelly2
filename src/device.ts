@@ -47,6 +47,7 @@ export class Device {
   private reconnectTimeout: NodeJS.Timeout | null = null
   private shouldReconnect: boolean = true
   private isReconnecting: boolean = false
+  private sentStaticDeltas: boolean = false
 
   constructor (
     app: any,
@@ -88,7 +89,7 @@ export class Device {
         const onError = (error: any) => {
           ws.removeListener('open', onOpen)
           reject(error)
-          this.attemptReconnection(
+          this.attemptReconnection()
         }
 
         ws.once('open', onOpen)
@@ -456,17 +457,20 @@ export class Device {
       this.sentMeta = true
     }
 
-    if (this.name) {
-      values.push({
-        path: this.getDevicePath('name'),
-        value: this.name
-      })
-    }
+    if ( this.sentStaticDeltas === false ) {
+      if (this.name) {
+        values.push({
+          path: this.getDevicePath('name'),
+          value: this.name
+        })
+      }
 
-    values.push({
-      path: this.getDevicePath('model'),
-      value: this.model
-    })
+      values.push({
+        path: this.getDevicePath('model'),
+        value: this.model
+      })
+      this.sentStaticDeltas = true
+    }
 
     if (this.numSwitches > 0) {
       for (let i = 0; i < this.numSwitches; i++) {
