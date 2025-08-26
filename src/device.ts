@@ -567,7 +567,7 @@ export class Device {
     }
   }
 
-  private getComponentMeta (status: any, component: string, meta: any[]) {
+  private getSwitchableComponentMeta (status: any, component: string, meta: any[]) {
     let count = this.componentCounts[component]
 
     for (let i = 0; i < count; i++) {
@@ -660,10 +660,10 @@ export class Device {
       })
     }
 
-    this.getComponentMeta(status, 'switch', meta)
-    this.getComponentMeta(status, 'light', meta)
-    this.getComponentMeta(status, 'rgb', meta)
-    this.getComponentMeta(status, 'rgbw', meta)
+    this.getSwitchableComponentMeta(status, 'switch', meta)
+    this.getSwitchableComponentMeta(status, 'light', meta)
+    this.getSwitchableComponentMeta(status, 'rgb', meta)
+    this.getSwitchableComponentMeta(status, 'rgbw', meta)
 
     readKeys.forEach((p: any) => {
       for (let i = 0; i < MAX_INPUTS; i++) {
