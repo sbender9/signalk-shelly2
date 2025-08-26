@@ -25,10 +25,10 @@ type PendingRequest = {
 const MAX_INPUTS = 10
 export const supportedComponents = ['switch', 'light', 'rgb', 'rgbw']
 const componentNames: { [key: string]: any } = {
-  switch: "Switch",
-  light: "Light",
-  rgb: "RGB",
-  rgbw: "RGBW"
+  switch: 'Switch',
+  light: 'Light',
+  rgb: 'RGB',
+  rgbw: 'RGBW'
 }
 
 export class Device {
@@ -350,8 +350,17 @@ export class Device {
     this.sendDeltas(status)
   }
 
-  async setComponentValue (component: string, idx: number, getKey:string, setKey: string, value: any) {
-    await this.send(`${componentNames[component]}.Set`, { id: idx, [setKey]: value })
+  async setComponentValue (
+    component: string,
+    idx: number,
+    getKey: string,
+    setKey: string,
+    value: any
+  ) {
+    await this.send(`${componentNames[component]}.Set`, {
+      id: idx,
+      [setKey]: value
+    })
     const status = await this.getComponentStatus(component, idx)
     if (status[getKey] !== value) {
       throw new Error(`Failed to set ${component} ${idx} to ${value}`)
@@ -360,55 +369,15 @@ export class Device {
   }
 
   async getComponentStatus (component: string, idx: number): Promise<any> {
-    const res = await this.send(`${componentNames[component]}.GetStatus`, { id: idx })
+    const res = await this.send(`${componentNames[component]}.GetStatus`, {
+      id: idx
+    })
     return res
-  }
-
-  async setSwitch (value: any, switchIdx: number) {
-    const expected =
-      value === 1 || value === 'on' || value === 'true' || value === true
-    await this.send('Switch.Set', { id: switchIdx, on: expected })
-    const status = await this.getSwitch(switchIdx)
-    if (status.output !== expected) {
-      throw new Error(`Failed to set switch ${switchIdx} to ${expected}`)
-    }
-    this.sendDeltas({ [`switch:${switchIdx}`]: status })
-  }
-
-  async getSwitch (switchIdx: number): Promise<any> {
-    const res = await this.send('Switch.GetStatus', { id: switchIdx })
-    return res
-  }
-
-  async setLight (value: any, lightIdx: number) {
-    const expected =
-      value === 1 || value === 'on' || value === 'true' || value === true
-    await this.send('Light.Set', { id: lightIdx, on: expected })
-    const status = await this.getLight(lightIdx)
-    if (status.output !== expected) {
-      throw new Error(`Failed to set light ${lightIdx} to ${expected}`)
-    }
-    this.sendDeltas({ [`light:${lightIdx}`]: status })
-  }
-
-  async getLight(lightIdx: number): Promise<any> {
-    const res = await this.send('Light.GetStatus', { id: lightIdx })
-    return res
-  }
-
-  async setDimmer (value: any, lightIdx: number) {
-    const expected = Math.round(value * 100)
-    await this.send('Light.Set', { id: lightIdx, brightness: expected })
-    const status = await this.getLight(lightIdx)
-    if (status.brightness !== expected) {
-      throw new Error(`Failed to set light ${lightIdx} to ${expected}`)
-    }
-    this.sendDeltas({ [`light:${lightIdx}`]: status })
   }
 
   private getCapabilities (status: any) {
     supportedComponents.forEach(component => {
-      this.componentCounts[component] = 0
+      this.componentCounts[component] = 2
 
       for (let i = 0; i < 10; i++) {
         if (status[`${component}:${i}`]) {
@@ -426,24 +395,34 @@ export class Device {
     return `electrical.switches.${name}${key ? '.' + key : ''}`
   }
 
-  private getComponentProps(component:string, relay: number) {
+  private getComponentProps (component: string, relay: number) {
     return this.deviceSettings
       ? this.deviceSettings[`${component}${relay}`]
       : undefined
   }
 
-  private getComponentPath (component:string, relay: number, key: string|undefined) {
+  private getComponentPath (
+    component: string,
+    relay: number,
+    key: string | undefined
+  ) {
     const componentProps = this.getComponentProps(component, relay)
 
     let path = this.getDevicePath()
     if (this.componentCounts[component] > 1) {
-      path = path + `.${componentProps?.path || componentProps?.switchPath || relay}`
+      path =
+        path + `.${componentProps?.path || componentProps?.switchPath || relay}`
     }
 
     return path + (key ? '.' + key : '')
   }
 
-  private getComponentDeltas(status:any, component: string, onKey: string,  values: any[]) {
+  private getComponentDeltas (
+    status: any,
+    component: string,
+    onKey: string,
+    values: any[]
+  ) {
     let count = this.componentCounts[component]
     if (count > 0) {
       for (let i = 0; i < count; i++) {
@@ -469,22 +448,37 @@ export class Device {
           }
 
           if (componentStatus.rgb !== undefined) {
-            let rgb:number[] = componentStatus.rgb
+            let rgb: number[] = componentStatus.rgb
             values.push({
-              path: this.getComponentPath(component, i, 'red'),
-              value: rgb[0]
+              path: this.getComponentPath(component, i, 'rgb'),
+              value: rgb
             })
-            values.push({
-              path: this.getComponentPath(component, i, 'green'),
-              value: rgb[1]
-            })
-            values.push({
-              path: this.getComponentPath(component, i, 'blue'),
-              value: rgb[2]
-            })
+
+            if (
+              this.deviceSettings?.presets &&
+              this.deviceSettings.presets.length > 0
+            ) {
+              let preset = null
+              if (rgb !== undefined) {
+                preset = this.deviceSettings.presets.find((preset: any) => {
+                  return (
+                    rgb[0] == preset.red &&
+                    rgb[1] == preset.green &&
+                    rgb[2] == preset.blue &&
+                    (preset.white === undefined || rgb[3] == preset.white) &&
+                    (preset.bright === 0 ||
+                      componentStatus.brightness == preset.bright)
+                  )
+                })
+              }
+              values.push({
+                path: this.getComponentPath(component, i, 'preset'),
+                value: preset
+              })
+            }
           }
 
-          if ( componentStatus.white !== undefined ) {
+          if (componentStatus.white !== undefined) {
             values.push({
               path: this.getComponentPath(component, i, 'white'),
               value: componentStatus.white
@@ -508,8 +502,7 @@ export class Device {
     }
   }
 
-  private getReadKeys(status:any, values: any[])
-  {
+  private getReadKeys (status: any, values: any[]) {
     readKeys.forEach((p: any) => {
       for (let i = 0; i < MAX_INPUTS; i++) {
         const key = p.key
@@ -541,7 +534,7 @@ export class Device {
       this.sentMeta = true
     }
 
-    if ( this.sentStaticDeltas === false ) {
+    if (this.sentStaticDeltas === false) {
       if (this.name) {
         values.push({
           path: this.getDevicePath('name'),
@@ -574,7 +567,7 @@ export class Device {
     }
   }
 
-  private getComponentMeta(status:any, component: string, meta: any[]) {
+  private getComponentMeta (status: any, component: string, meta: any[]) {
     let count = this.componentCounts[component]
 
     for (let i = 0; i < count; i++) {
@@ -595,35 +588,36 @@ export class Device {
         }
       })
 
-      if ( componentStatus?.brightness !== undefined ) {
+      if (
+        this.deviceSettings?.presets &&
+        this.deviceSettings.presets.length > 0
+      ) {
+        meta.push({
+          path: this.getComponentPath(component, i, 'preset'),
+          value: {
+            displayName: componentProps?.displayName,
+            possibleValues: [
+              ...this.deviceSettings.presets.map((preset: any) => {
+                return {
+                  title: preset.name,
+                  value: preset.name
+                }
+              })
+            ],
+            enum: [
+              ...this.deviceSettings.presets.map((preset: any) => preset.name)
+            ]
+          }
+        })
+      }
+
+      if (componentStatus?.brightness !== undefined) {
         meta.push({
           path: this.getComponentPath('light', i, 'dimmingLevel'),
           value: {
             units: 'ratio',
             displayName: componentProps.displayName
           }
-        })
-      }
-
-      if (componentStatus?.rgb !== undefined) {
-        meta.push({
-          path: this.getComponentPath(component, i, 'red'),
-          value: { units: 'rgbColor', range: [0, 255] }
-        })
-        meta.push({
-          path: this.getComponentPath(component, i, 'green'),
-          value: { units: 'rgbColor', range: [0, 255] }
-        })
-        meta.push({
-          path: this.getComponentPath(component, i, 'blue'),
-          value: { units: 'rgbColor', range: [0, 255] }
-        })
-      }
-
-      if (componentStatus?.white !== undefined) {
-        meta.push({
-          path: this.getComponentPath(component, i, 'white'),
-          value: { units: 'rgbColor', range: [0, 255] }
         })
       }
 
@@ -701,7 +695,7 @@ export class Device {
     }
   }
 
-  private registerComponentPuts(status:any, component: string) {
+  private registerComponentPuts (status: any, component: string) {
     let count = this.componentCounts[component]
     if (count > 0) {
       for (let i = 0; i < count; i++) {
@@ -722,7 +716,16 @@ export class Device {
               path,
               value,
               (value: any) => {
-                return this.setComponentValue(component, i, 'output', 'on', value === 1 || value === 'on' || value === 'true' || value === true)
+                return this.setComponentValue(
+                  component,
+                  i,
+                  'output',
+                  'on',
+                  value === 1 ||
+                    value === 'on' ||
+                    value === 'true' ||
+                    value === true
+                )
               },
               cb
             )
@@ -741,7 +744,13 @@ export class Device {
                 path,
                 value,
                 (value: any) => {
-                  return this.setComponentValue(component, i, 'brightness', 'brightness', Math.round(value * 100))
+                  return this.setComponentValue(
+                    component,
+                    i,
+                    'brightness',
+                    'brightness',
+                    Math.round(value * 100)
+                  )
                 },
                 cb
               )
@@ -750,9 +759,103 @@ export class Device {
         }
 
         if (componentStatus?.rgb !== undefined) {
-        }
+          this.app.registerPutHandler(
+            'vessels.self',
+            this.getComponentPath(component, i, 'rgb'),
+            (context: string, path: string, value: any, cb: any) => {
+              return this.valueHandler(
+                context,
+                path,
+                value,
+                (value: any) => {
+                  return this.setComponentValue(
+                    component,
+                    i,
+                    'rgb',
+                    'rgb',
+                    value
+                  )
+                },
+                cb
+              )
+            }
+          )
 
+          if (
+            this.deviceSettings?.presets &&
+            this.deviceSettings.presets.length > 0
+          ) {
+            this.app.registerPutHandler(
+              'vessels.self',
+              this.getComponentPath(component, i, 'rgb'),
+              (context: string, path: string, value: any, cb: any) => {
+                return this.valueHandler(
+                  context,
+                  path,
+                  value,
+                  (value: any) => {
+                    return new Promise((resolve, reject) => {
+                      const preset = this.deviceSettings.presets.find(
+                        (preset: any) => preset.name == value
+                      )
+                      if (!preset || value === 'Unknown') {
+                        reject(new Error(`invalid preset ${value}`))
+                        return
+                      }
+                      const rgb = [preset.red, preset.green, preset.blue]
+                      if (preset.white !== undefined) {
+                        rgb.push(preset.white)
+                      }
+                      this.send(`${componentNames[component]}.Set`, {
+                        id: i,
+                        rgb
+                      })
+                        .then(() => {
+                          if (
+                            preset.bright === undefined ||
+                            preset.bright === 0
+                          ) {
+                            resolve(true)
+                          } else {
+                            this.send(`${componentNames[component]}.Set`, {
+                              id: i,
+                              brightness: preset.bright
+                            })
+                              .then(resolve)
+                              .catch(reject)
+                          }
+                        })
+                        .catch(reject)
+                    })
+                  },
+                  cb
+                )
+              }
+            )
+          }
+        }
         if (componentStatus?.white !== undefined) {
+          this.app.registerPutHandler(
+            'vessels.self',
+            this.getComponentPath(component, i, 'white'),
+            (context: string, path: string, value: any, cb: any) => {
+              return this.valueHandler(
+                context,
+                path,
+                value,
+                (value: any) => {
+                  return this.setComponentValue(
+                    component,
+                    i,
+                    'white',
+                    'white',
+                    Math.round(value * 100)
+                  )
+                },
+                cb
+              )
+            }
+          )
         }
       }
     }
@@ -765,7 +868,7 @@ export class Device {
     this.registerComponentPuts(status, 'rgbw')
   }
 
-  valueHandler (
+  private valueHandler (
     context: string,
     path: string,
     value: any,
