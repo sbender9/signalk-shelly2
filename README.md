@@ -1,4 +1,5 @@
 # signalk-shelly2
+[![npm version](https://img.shields.io/npm/v/@canboat/ts-pgns.svg)](https://www.npmjs.com/@canboat/ts-pgns)
 
 A Signal K plugin for integrating Shelly Gen 2+ smart devices into your Signal K server. This plugin automatically discovers Shelly devices on your network and provides real-time monitoring and control capabilities.
 
