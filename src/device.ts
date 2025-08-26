@@ -447,9 +447,11 @@ export class Device {
 
   getDevicePath(key?: string) {
     const component = this.getMainComponent()
-    const deviceRoot = component ? componentPaths[component] : 'electrical.unknown'
+    const deviceRoot = component
+      ? componentPaths[component]
+      : 'electrical.unknown'
     let name = this.deviceSettings?.devicePath
-    if ( name !== undefined && name.indexOf('.') === -1) {
+    if (name !== undefined && name.indexOf('.') === -1) {
       name = `${deviceRoot}.${name}`
     } else if (name === undefined) {
       name = `${deviceRoot}.${this.name ? camelCase(this.name) : this.id}`
@@ -605,13 +607,13 @@ export class Device {
         })
       }
 
-      if ( this.model ) {
+      if (this.model) {
         values.push({
           path: this.getDevicePath('model'),
           value: this.model
         })
       }
-      
+
       this.sentStaticDeltas = true
     }
 
@@ -1411,7 +1413,7 @@ const componentReadPaths: { [key: string]: ReadComponent } = {
     ]
   },
   devicepower: {
-    paths: [ 
+    paths: [
       {
         key: 'battery.V',
         path: 'battery.voltage',
