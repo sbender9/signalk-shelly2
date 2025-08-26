@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-import camelCase from 'camelcase'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const mdns = require('mdns-js')
 import { Device, supportedComponents } from './device'
@@ -107,7 +106,7 @@ export default function (app: any) {
         })
       }
 
-      if ( createMockDevices) {
+      if (createMockDevices) {
         const mockedDevices = mockDevices(app, plugin)
         mockedDevices.forEach(({ device, status }) => {
           devices[device.id!] = device
@@ -358,25 +357,49 @@ export default function (app: any) {
 const mockDevices = (app: any, plugin: any) => {
   return [
     {
-      device: new Device(app, plugin, undefined, 'shelly-smokeDetector1', '192.168.99.100'),
+      device: new Device(
+        app,
+        plugin,
+        undefined,
+        'shelly-smokeDetector1',
+        '192.168.99.100'
+      ),
       status: {
-        'devicepower:0': { battery: { V: 3.7, percent: 50 }, external: { present: true } },
+        'devicepower:0': {
+          battery: { V: 3.7, percent: 50 },
+          external: { present: true }
+        },
         'smoke:0': { alarm: false, mute: false }
       }
     },
     {
-      device: new Device(app, plugin, undefined, 'shelly-smokeDetector2', '192.168.99.100'),
+      device: new Device(
+        app,
+        plugin,
+        undefined,
+        'shelly-smokeDetector2',
+        '192.168.99.100'
+      ),
       status: {
-        'devicepower:0': { battery: { V: 3.7, percent: 50 }, external: { present: true } },
+        'devicepower:0': {
+          battery: { V: 3.7, percent: 50 },
+          external: { present: true }
+        },
         'smoke:0': { alarm: false, mute: false },
         'smoke:1': { alarm: true, mute: true }
       }
     },
     {
-      device: new Device(app, plugin, undefined, 'shelly-powerMeter', '192.168.99.100'),
+      device: new Device(
+        app,
+        plugin,
+        undefined,
+        'shelly-powerMeter',
+        '192.168.99.100'
+      ),
       status: {
-        'pm1:0': { 
-          freq: 10 ,
+        'pm1:0': {
+          freq: 10,
           voltage: 12.2,
           current: 1.5,
           apower: 18.3,
@@ -403,71 +426,111 @@ const mockDevices = (app: any, plugin: any) => {
       }
     },
     {
-      device: new Device(app, plugin, undefined, 'shelly-entergyMeter1', '192.168.99.100'),
+      device: new Device(
+        app,
+        plugin,
+        undefined,
+        'shelly-entergyMeter1',
+        '192.168.99.100'
+      ),
       status: {
-        'em1:0': { 
-          freq: 10 ,
+        'em1:0': {
+          freq: 10,
           voltage: 12.2,
           current: 1.5,
           act_power: 18.3,
           aprt_power: 5.0,
-          pf: 0.8,
+          pf: 0.8
         }
       }
     },
     {
-      device: new Device(app, plugin, undefined, 'shelly-energyMeter', '192.168.99.100'),
+      device: new Device(
+        app,
+        plugin,
+        undefined,
+        'shelly-energyMeter',
+        '192.168.99.100'
+      ),
       status: {
-        'em:0': { 
-          'a_current': 10,
-          'a_voltage': 220,
-          'a_act_power': 100,
-          'a_aprt_power': 120,
-          'a_pf': 0.8,
-          'a_freq': 50,
-          'b_current': 10,
-          'b_voltage': 220,
-          'b_act_power': 100,
-          'b_aprt_power': 120,
-          'b_pf': 0.8,
-          'b_freq': 50,
-          'c_current': 24,
-          'c_voltage': 221,
-          'c_act_power': 100,
-          'c_aprt_power': 120,
-          'c_pf': 0.8,
-          'c_freq': 50,
-          'n_current': 0.3,
-          'n_voltage': 0,
-          'n_act_power': 0,
-          'n_aprt_power': 0,
-          'n_pf': 0,
-          'n_freq': 0,
-          'total_current': 200,
-          'total_act_power': 100,
-          'total_aprt_power': 120,
-          'user_calibrated_phase': ['A']
+        'em:0': {
+          a_current: 10,
+          a_voltage: 220,
+          a_act_power: 100,
+          a_aprt_power: 120,
+          a_pf: 0.8,
+          a_freq: 50,
+          b_current: 10,
+          b_voltage: 220,
+          b_act_power: 100,
+          b_aprt_power: 120,
+          b_pf: 0.8,
+          b_freq: 50,
+          c_current: 24,
+          c_voltage: 221,
+          c_act_power: 100,
+          c_aprt_power: 120,
+          c_pf: 0.8,
+          c_freq: 50,
+          n_current: 0.3,
+          n_voltage: 0,
+          n_act_power: 0,
+          n_aprt_power: 0,
+          n_pf: 0,
+          n_freq: 0,
+          total_current: 200,
+          total_act_power: 100,
+          total_aprt_power: 120,
+          user_calibrated_phase: ['A']
         }
       }
     },
     {
-      device: new Device(app, plugin, undefined, 'shelly-rgb', '192.168.99.100'),
+      device: new Device(
+        app,
+        plugin,
+        undefined,
+        'shelly-rgb',
+        '192.168.99.100'
+      ),
       status: {
-        'rgb:0': { output: true, rgb: [255, 0, 0], brightness: 50, white: 255 },
+        'rgb:0': { output: true, rgb: [255, 0, 0], brightness: 50, white: 255 }
       }
     },
     {
-      device: new Device(app, plugin, undefined, 'shelly-rgbw', '192.168.99.100'),
+      device: new Device(
+        app,
+        plugin,
+        undefined,
+        'shelly-rgbw',
+        '192.168.99.100'
+      ),
       status: {
-        'rgbw:0': { output: true, rgb: [255, 0, 0], brightness: 50, white: 255 },
-        'rgbw:1': { output: false, rgb: [255, 255, 0], brightness: 90, white: 198 }
+        'rgbw:0': {
+          output: true,
+          rgb: [255, 0, 0],
+          brightness: 50,
+          white: 255
+        },
+        'rgbw:1': {
+          output: false,
+          rgb: [255, 255, 0],
+          brightness: 90,
+          white: 198
+        }
       }
     },
     {
-      device: new Device(app, plugin, undefined, 'shelly-light', '192.168.99.100'),
+      device: new Device(
+        app,
+        plugin,
+        undefined,
+        'shelly-light',
+        '192.168.99.100'
+      ),
       status: {
-        'light:0': { 
-          output: true, 
+        'light:0': {
+          output: true,
           brightness: 50,
           pf: 0.8,
           freq: 50,
@@ -478,7 +541,7 @@ const mockDevices = (app: any, plugin: any) => {
         },
         'light:1': { output: false, brightness: 90 }
       }
-    },
+    }
   ]
 }
 
