@@ -47,12 +47,6 @@ Please report any devices you've tested so that I can add to the list. Please op
 
 If you do not see any data you expect, please open an issue. Turn on debug logging for the plugin, and you'll see a message in the log `Initial device status retrieved successfully from...` followed by JSON data. Please include that data in your issue.
 
-## Requirements
-
-- Signal K server
-- Shelly devices (Gen 2 or higher)
-- Network connectivity between Signal K server and Shelly devices
-
 ## License
 
 Apache-2.0
