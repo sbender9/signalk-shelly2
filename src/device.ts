@@ -417,7 +417,7 @@ export class Device {
     return path + (key ? '.' + key : '')
   }
 
-  private getComponentDeltas (
+  private getSwitchableComponentDeltas (
     status: any,
     component: string,
     onKey: string,
@@ -549,10 +549,10 @@ export class Device {
       this.sentStaticDeltas = true
     }
 
-    this.getComponentDeltas(status, 'switch', 'output', values)
-    this.getComponentDeltas(status, 'light', 'output', values)
-    this.getComponentDeltas(status, 'rgb', 'output', values)
-    this.getComponentDeltas(status, 'rgbw', 'output', values)
+    this.getSwitchableComponentDeltas(status, 'switch', 'output', values)
+    this.getSwitchableComponentDeltas(status, 'light', 'output', values)
+    this.getSwitchableComponentDeltas(status, 'rgb', 'output', values)
+    this.getSwitchableComponentDeltas(status, 'rgbw', 'output', values)
     this.getReadKeys(status, values)
 
     if (values.length > 0) {
@@ -567,7 +567,7 @@ export class Device {
     }
   }
 
-  private getComponentMeta (status: any, component: string, meta: any[]) {
+  private getSwitchableComponentMeta (status: any, component: string, meta: any[]) {
     let count = this.componentCounts[component]
 
     for (let i = 0; i < count; i++) {
@@ -660,10 +660,10 @@ export class Device {
       })
     }
 
-    this.getComponentMeta(status, 'switch', meta)
-    this.getComponentMeta(status, 'light', meta)
-    this.getComponentMeta(status, 'rgb', meta)
-    this.getComponentMeta(status, 'rgbw', meta)
+    this.getSwitchableComponentMeta(status, 'switch', meta)
+    this.getSwitchableComponentMeta(status, 'light', meta)
+    this.getSwitchableComponentMeta(status, 'rgb', meta)
+    this.getSwitchableComponentMeta(status, 'rgbw', meta)
 
     readKeys.forEach((p: any) => {
       for (let i = 0; i < MAX_INPUTS; i++) {
@@ -926,11 +926,8 @@ const switchReadPaths = () => {
     {
       key: `pf`,
       path: 'powerFactor',
-      converter: (val: any) => {
-        return val * 1000
-      },
       meta: {
-        units: 'W'
+        units: 'ratio'
       }
     },
     {
@@ -1072,5 +1069,322 @@ const readKeys = [
     meta: {
       units: 'K'
     }
+  },
+  // EM (Energy Meter) component status fields
+  {
+    key: 'em',
+    path: 'a_current',
+    converter: (v: any) => v.a_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_voltage',
+    converter: (v: any) => v.a_voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_act_power',
+    converter: (v: any) => v.a_act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_aprt_power',
+    converter: (v: any) => v.a_aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_pf',
+    converter: (v: any) => v.a_pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_freq',
+    converter: (v: any) => v.a_freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_current',
+    converter: (v: any) => v.b_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_voltage',
+    converter: (v: any) => v.b_voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_act_power',
+    converter: (v: any) => v.b_act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_aprt_power',
+    converter: (v: any) => v.b_aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_pf',
+    converter: (v: any) => v.b_pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_freq',
+    converter: (v: any) => v.b_freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+
+  {
+    key: 'em',
+    path: 'c_current',
+    converter: (v: any) => v.c_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_voltage',
+    converter: (v: any) => v.c_voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_act_power',
+    converter: (v: any) => v.c_act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_aprt_power',
+    converter: (v: any) => v.c_aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_pf',
+    converter: (v: any) => v.c_pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_freq',
+    converter: (v: any) => v.c_freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+  {
+    key: 'em',
+    path: 'n_current',
+    converter: (v: any) => v.n_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'total_current',
+    converter: (v: any) => v.total_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'total_act_power',
+    converter: (v: any) => v.total_act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em',
+    path: 'total_aprt_power',
+    converter: (v: any) => v.total_aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em',
+    path: 'user_calibrated_phase',
+    converter: (v: any) => v.user_calibrated_phase
+  },
+  // EM1 component status fields
+  {
+    key: 'em1',
+    path: 'current',
+    converter: (v: any) => v.current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'voltage',
+    converter: (v: any) => v.voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'act_power',
+    converter: (v: any) => v.act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'aprt_power',
+    converter: (v: any) => v.aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'pf',
+    converter: (v: any) => v.pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'freq',
+    converter: (v: any) => v.freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+  // PM1 component status fields
+  {
+    key: 'pm1',
+    path: 'voltage',
+    converter: (v: any) => v.voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'current',
+    converter: (v: any) => v.current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'apower',
+    converter: (v: any) => v.apower,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'aprtpower',
+    converter: (v: any) => v.aprtpower,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'pf',
+    converter: (v: any) => v.pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'freq',
+    converter: (v: any) => v.freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'aenergy.total',
+    converter: (v: any) => v.aenergy?.total,
+    meta: {
+      units: 'Wh'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'aenergy.by_minute',
+    converter: (v: any) => v.aenergy?.by_minute
+  },
+  {
+    key: 'pm1',
+    path: 'aenergy.minute_ts',
+    converter: (v: any) => v.aenergy?.minute_ts
+  },
+  {
+    key: 'pm1',
+    path: 'ret_aenergy.total',
+    converter: (v: any) => v.ret_aenergy?.total,
+    meta: {
+      units: 'Wh'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'ret_aenergy.by_minute',
+    converter: (v: any) => v.ret_aenergy?.by_minute
+  },
+  {
+    key: 'pm1',
+    path: 'ret_aenergy.minute_ts',
+    converter: (v: any) => v.ret_aenergy?.minute_ts
   }
 ]
