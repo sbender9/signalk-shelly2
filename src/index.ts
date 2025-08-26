@@ -256,7 +256,7 @@ export default function (app: any) {
               }
             }
           }
-          if (component === 'rgb' || component === 'rgbw') {
+          if (count > 0 && (component === 'rgb' || component === 'rgbw')) {
             const required = ['name', 'red', 'green', 'blue', 'bright']
             if (component === 'rgbw') {
               required.push('white')
