@@ -1255,5 +1255,139 @@ const readKeys = [
     key: 'em',
     path: 'user_calibrated_phase',
     converter: (v: any) => v.user_calibrated_phase
+  },
+  // EM1 component status fields
+  {
+    key: 'em1',
+    path: 'current',
+    converter: (v: any) => v.current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'voltage',
+    converter: (v: any) => v.voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'act_power',
+    converter: (v: any) => v.act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'aprt_power',
+    converter: (v: any) => v.aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'pf',
+    converter: (v: any) => v.pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'em1',
+    path: 'freq',
+    converter: (v: any) => v.freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+  // PM1 component status fields
+  {
+    key: 'pm1',
+    path: 'voltage',
+    converter: (v: any) => v.voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'current',
+    converter: (v: any) => v.current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'apower',
+    converter: (v: any) => v.apower,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'aprtpower',
+    converter: (v: any) => v.aprtpower,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'pf',
+    converter: (v: any) => v.pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'freq',
+    converter: (v: any) => v.freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'aenergy.total',
+    converter: (v: any) => v.aenergy?.total,
+    meta: {
+      units: 'Wh'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'aenergy.by_minute',
+    converter: (v: any) => v.aenergy?.by_minute
+  },
+  {
+    key: 'pm1',
+    path: 'aenergy.minute_ts',
+    converter: (v: any) => v.aenergy?.minute_ts
+  },
+  {
+    key: 'pm1',
+    path: 'ret_aenergy.total',
+    converter: (v: any) => v.ret_aenergy?.total,
+    meta: {
+      units: 'Wh'
+    }
+  },
+  {
+    key: 'pm1',
+    path: 'ret_aenergy.by_minute',
+    converter: (v: any) => v.ret_aenergy?.by_minute
+  },
+  {
+    key: 'pm1',
+    path: 'ret_aenergy.minute_ts',
+    converter: (v: any) => v.ret_aenergy?.minute_ts
   }
 ]
