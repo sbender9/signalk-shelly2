@@ -125,10 +125,8 @@ export default function (app: any) {
     },
 
     stop: function () {
-      sentMetaDevices = {}
       onStop.forEach((f: any) => f())
       onStop = []
-      stopped = true
       Object.values(devices).forEach((device: any) => {
         device.disconnect()
       })
