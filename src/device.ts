@@ -23,7 +23,19 @@ type PendingRequest = {
 }
 
 const MAX_INPUTS = 10
-export const supportedComponents = ['switch', 'light', 'rgb', 'rgbw', 'em', 'em1', 'pm1', 'temperature', 'humidity', 'voltmeter', 'input']
+export const supportedComponents = [
+  'switch',
+  'light',
+  'rgb',
+  'rgbw',
+  'em',
+  'em1',
+  'pm1',
+  'temperature',
+  'humidity',
+  'voltmeter',
+  'input'
+]
 const componentNames: { [key: string]: any } = {
   switch: 'Switch',
   light: 'Light',
@@ -573,7 +585,11 @@ export class Device {
     }
   }
 
-  private getSwitchableComponentMeta (status: any, component: string, meta: any[]) {
+  private getSwitchableComponentMeta (
+    status: any,
+    component: string,
+    meta: any[]
+  ) {
     let count = this.componentCounts[component]
 
     for (let i = 0; i < count; i++) {
