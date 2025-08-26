@@ -354,7 +354,7 @@ export default function (app: any) {
   return plugin
 }
 
-const mockDevices = (app: any, plugin: any) => {
+export const mockDevices = (app: any, plugin: any) => {
   return [
     {
       device: new Device(
