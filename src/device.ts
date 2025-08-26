@@ -34,8 +34,22 @@ export const supportedComponents = [
   'humidity',
   'voltmeter',
   'input',
-  'smoke'
+  'smoke',
+  'devicepower'
 ]
+const componentPaths: { [key: string]: any } = {
+  switch: 'electrical.switches',
+  light: 'electrical.switches',
+  rgb: 'electrical.switches',
+  rgbw: 'electrical.switches',
+  em: 'electrical.energymeter',
+  em1: 'electrical.energymeter',
+  pm1: 'electrical.powermeter',
+  temperature: 'environment',
+  humidity: 'environment',
+  voltmeter: 'electrical.voltmeter',
+  smoke: 'environment.smoke'
+}
 const componentNames: { [key: string]: any } = {
   switch: 'Switch',
   light: 'Light',
@@ -158,6 +172,7 @@ export class Device {
         this.debug(JSON.stringify(result, null, 2))
 
         /*
+        result['devicepower:0'] = { battery: { V: 3.7, percent: 50 }, external: { present: true } }
         result['smoke:0'] = { alarm: false, mute: false }
         result['smoke:1'] = { alarm: true, mute: true }
         result['pm1:0'] = { freq: 10 }
@@ -421,12 +436,25 @@ export class Device {
     })
   }
 
-  private getDevicePath(key?: string) {
-    let name = this.deviceSettings?.devicePath
-    if (name === undefined) {
-      name = this.name ? camelCase(this.name) : this.id
+  private getMainComponent() {
+    for (const component of supportedComponents) {
+      if (this.componentCounts[component] > 0) {
+        return component
+      }
     }
-    return `electrical.switches.${name}${key ? '.' + key : ''}`
+    return null
+  }
+
+  getDevicePath(key?: string) {
+    const component = this.getMainComponent()
+    const deviceRoot = component ? componentPaths[component] : 'electrical.unknown'
+    let name = this.deviceSettings?.devicePath
+    if ( name !== undefined && name.indexOf('.') === -1) {
+      name = `${deviceRoot}.${name}`
+    } else if (name === undefined) {
+      name = `${deviceRoot}.${this.name ? camelCase(this.name) : this.id}`
+    }
+    return `${name}${key ? '.' + key : ''}`
   }
 
   private getComponentProps(component: string, relay: number) {
@@ -577,10 +605,13 @@ export class Device {
         })
       }
 
-      values.push({
-        path: this.getDevicePath('model'),
-        value: this.model
-      })
+      if ( this.model ) {
+        values.push({
+          path: this.getDevicePath('model'),
+          value: this.model
+        })
+      }
+      
       this.sentStaticDeltas = true
     }
 
@@ -902,7 +933,7 @@ export class Device {
 }
 
 const temperatureConverter = (value: any) => {
-  return value?.tC + 273.15
+  return value + 273.15
 }
 
 const humidityConverter = (value: any) => {
@@ -940,7 +971,8 @@ const commonSwitchPaths: ReadPath[] = [
     }
   },
   {
-    key: `temperature`,
+    path: 'temperature',
+    key: `temperature.tC`,
     converter: temperatureConverter,
     meta: {
       units: 'K'
@@ -1104,7 +1136,8 @@ const componentReadPaths: { [key: string]: ReadComponent } = {
   temperature: {
     paths: [
       {
-        key: 'temperature',
+        key: 'tC',
+        path: 'temperature',
         converter: temperatureConverter,
         meta: {
           units: 'K'
@@ -1374,6 +1407,31 @@ const componentReadPaths: { [key: string]: ReadComponent } = {
       },
       {
         key: 'ret_aenergy.minute_ts'
+      }
+    ]
+  },
+  devicepower: {
+    paths: [ 
+      {
+        key: 'battery.V',
+        path: 'battery.voltage',
+        meta: {
+          units: 'V'
+        }
+      },
+      {
+        key: 'battery.percent',
+        converter: percentConverter,
+        meta: {
+          units: 'ratio'
+        }
+      },
+      {
+        key: 'external.present',
+        path: 'externalPower',
+        meta: {
+          units: 'bool'
+        }
       }
     ]
   }
