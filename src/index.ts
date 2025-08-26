@@ -14,22 +14,16 @@
  */
 
 import camelCase from 'camelcase'
-import path from 'path'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const mdns = require('mdns-js')
 import { Device, supportedComponents } from './device'
-import p from 'proxyquire'
 
 const SERVICE_NAME = 'shelly'
 const deviceKey = (device: any) => device.id
 
 export default function (app: any) {
-  const error = app.error
-  const debug = app.debug
-  let sentMetaDevices: any = {}
   let props: any
   let onStop: any = []
-  let stopped = true
   let devices: { [key: string]: Device } = {}
   let browser: any
   let pollInterval: any = null
@@ -50,7 +44,7 @@ export default function (app: any) {
           data.type[0].name === SERVICE_NAME &&
           data.fullname
         ) {
-          let deviceId = data.fullname.split('.', 1)[0]
+          const deviceId = data.fullname.split('.', 1)[0]
 
           if (devices[deviceId]) {
             return
@@ -62,7 +56,7 @@ export default function (app: any) {
 
           if (gen && Number(gen) >= 2) {
             const props = getDeviceProps(deviceId)
-            let device = new Device(
+            const device = new Device(
               app,
               plugin,
               props,
@@ -170,7 +164,7 @@ export default function (app: any) {
       Object.values(devices).forEach((device) => {
         //debug(`adding Device ID ${deviceKey(device)} to schema`)
 
-        let props: any = (schema.properties[`Device ID ${device.id}`] = {
+        const props: any = (schema.properties[`Device ID ${device.id}`] = {
           type: 'object',
           properties: {
             deviceId: {
@@ -228,10 +222,8 @@ export default function (app: any) {
           if (count > 1) {
             for (let i = 0; i < count; i++) {
               const key = `${component}${i}`
-              let defaultPath
-              let description
-              defaultPath = i.toString()
-              description =
+              const defaultPath = i.toString()
+              const description =
                 'Used to generate the path name, ie. electrical.switches.${bankPath}.${switchPath}.state'
 
               props.properties[key] = {

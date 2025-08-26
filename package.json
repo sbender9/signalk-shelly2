@@ -21,8 +21,6 @@
   "dependencies": {
     "camelcase": "^6.2.0",
     "mdns-js": "^1.0.3",
-    "shellies": "^1.3.0",
-    "shellies-ng": "^1.4.0",
     "ws": "^8.18.3"
   },
   "repository": {

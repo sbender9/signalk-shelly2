@@ -15,8 +15,6 @@
 
 import WebSocket from 'ws'
 import camelCase from 'camelcase'
-import { component } from 'shellies-ng'
-import p from 'proxyquire'
 
 type PendingRequest = {
   resolve: (value: any) => void
@@ -24,7 +22,6 @@ type PendingRequest = {
   timeout: NodeJS.Timeout
 }
 
-const MAX_INPUTS = 10
 export const supportedComponents = [
   'switch',
   'light',
@@ -159,7 +156,7 @@ export class Device {
           `Initial device status retrieved successfully from ${this.id}`
         )
         this.debug(JSON.stringify(result, null, 2))
-        
+
         /*
         result['smoke:0'] = { alarm: false, mute: false }
         result['smoke:1'] = { alarm: true, mute: true }
@@ -171,7 +168,7 @@ export class Device {
         result['rgbw:0'] = { output: true, rgb: [255, 0, 0], brightness: 50, white: 255 }
         result['rgbw:1'] = { output: false, rgb: [255, 255, 0], brightness: 90, white: 198 }
         */
-       
+
         this.getCapabilities(result)
         this.registerForPuts(result)
         this.sendDeltas(result)
@@ -188,7 +185,7 @@ export class Device {
     if (!this.ws) return
 
     this.ws.on('message', (message) => {
-      let parsedMessage = JSON.parse(message.toString())
+      const parsedMessage = JSON.parse(message.toString())
       //this.debug(`Received message from device ${this.id}: ${JSON.stringify(parsedMessage)}`)
 
       if (parsedMessage.method === 'NotifyStatus') {
@@ -467,7 +464,7 @@ export class Device {
     onKey: string,
     values: any[]
   ) {
-    let count = this.componentCounts[component]
+    const count = this.componentCounts[component]
     if (count > 0) {
       for (let i = 0; i < count; i++) {
         const componentProps = this.getComponentProps(component, i)
@@ -480,7 +477,7 @@ export class Device {
 
         if (componentStatus !== undefined) {
           if (component === 'rgb' || component === 'rgbw') {
-            let rgb: number[] = componentStatus.rgb
+            const rgb: number[] = componentStatus.rgb
 
             if (
               this.deviceSettings?.presets &&
@@ -506,7 +503,7 @@ export class Device {
             }
           }
 
-          let readPaths = componentReadPaths[component]
+          const readPaths = componentReadPaths[component]
           if (readPaths) {
             readPaths.paths.forEach((p: ReadPath) => {
               const val = deepGet(componentStatus, p.key)
@@ -531,7 +528,7 @@ export class Device {
 
   private getSmokeDeltas(status: any, values: any[]) {
     const component = 'smoke'
-    let count = this.componentCounts[component]
+    const count = this.componentCounts[component]
     if (count > 0) {
       for (let i = 0; i < count; i++) {
         const componentProps = this.getComponentProps(component, i)
@@ -561,7 +558,7 @@ export class Device {
   }
 
   sendDeltas(status: any) {
-    let values: any = []
+    const values: any = []
 
     if (this.deviceSettings?.enabled === false) {
       return
@@ -606,7 +603,7 @@ export class Device {
   }
 
   private getComponentMeta(status: any, component: string, meta: any[]) {
-    let count = this.componentCounts[component]
+    const count = this.componentCounts[component]
 
     for (let i = 0; i < count; i++) {
       const componentProps = this.getComponentProps(component, i)
@@ -640,13 +637,17 @@ export class Device {
         })
       }
 
-      let readPaths = componentReadPaths[component]
+      const readPaths = componentReadPaths[component]
       if (readPaths) {
         readPaths.paths.forEach((p: ReadPath) => {
           const val = deepGet(componentStatus, p.key)
-          if (val !== undefined ) {
-            const metaValue = { ...(p.meta || {}), displayName: componentProps?.displayName || this.deviceSettings?.displayName  }
-            if ( Object.keys(metaValue).length > 0) {
+          if (val !== undefined) {
+            const metaValue = {
+              ...(p.meta || {}),
+              displayName:
+                componentProps?.displayName || this.deviceSettings?.displayName
+            }
+            if (Object.keys(metaValue).length > 0) {
               meta.push({
                 path: this.getComponentPath(component, i, p.path || p.key),
                 value: metaValue
@@ -668,7 +669,7 @@ export class Device {
   }
 
   sendMeta(status: any) {
-    let meta: any = []
+    const meta: any = []
 
     const devicePath = this.getDevicePath()
 
@@ -702,7 +703,7 @@ export class Device {
   }
 
   private registerComponentPuts(status: any, component: string) {
-    let count = this.componentCounts[component]
+    const count = this.componentCounts[component]
     if (count > 0) {
       for (let i = 0; i < count; i++) {
         const componentProps = this.getComponentProps(component, i)
@@ -713,7 +714,7 @@ export class Device {
 
         const componentStatus = status[`${component}:${i}`]
 
-        if ( componentStatus.output !== undefined ) {
+        if (componentStatus.output !== undefined) {
           const path = this.getComponentPath(component, i, 'state')
 
           this.app.registerPutHandler(
@@ -731,9 +732,9 @@ export class Device {
                     'output',
                     'on',
                     value === 1 ||
-                    value === 'on' ||
-                    value === 'true' ||
-                    value === true
+                      value === 'on' ||
+                      value === 'true' ||
+                      value === true
                   )
                 },
                 cb
@@ -885,7 +886,7 @@ export class Device {
   ) {
     func(value)
       .then((status: any) => {
-        let code = validator === undefined || validator(status) ? 200 : 400
+        const code = validator === undefined || validator(status) ? 200 : 400
         cb({
           state: 'COMPLETED',
           statusCode: code
