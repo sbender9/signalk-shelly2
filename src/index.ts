@@ -87,7 +87,7 @@ export default function (app: any) {
       })
 
       if (props) {
-        Object.keys(props).forEach(key => {
+        Object.keys(props).forEach((key) => {
           if (key.startsWith('Device ID ')) {
             const devProps = props[key]
             const id = devProps.deviceId
@@ -102,7 +102,7 @@ export default function (app: any) {
                 devProps.deviceName
               )
               if (devProps?.enabled === undefined || devProps?.enabled) {
-                devices[id].connect().catch(error => {
+                devices[id].connect().catch((error) => {
                   console.error(`Failed to connect to configured device ${id}`)
                   console.error(error)
                 })
@@ -167,7 +167,7 @@ export default function (app: any) {
         }
       }
 
-      Object.values(devices).forEach(device => {
+      Object.values(devices).forEach((device) => {
         //debug(`adding Device ID ${deviceKey(device)} to schema`)
 
         let props: any = (schema.properties[`Device ID ${device.id}`] = {
@@ -223,7 +223,7 @@ export default function (app: any) {
           }
         })
 
-        supportedComponents.forEach(component => {
+        supportedComponents.forEach((component) => {
           const count = device.componentCounts[component] || 0
           if (count > 1) {
             for (let i = 0; i < count; i++) {
@@ -347,7 +347,7 @@ export default function (app: any) {
     }
   }
 
-  function getDeviceProps (id: string) {
+  function getDeviceProps(id: string) {
     return props[`Device ID ${id}`]
   }
 

@@ -4,43 +4,43 @@ import { Device } from '../src/device'
 
 // Sample device status as provided
 const sampleDeviceStatus = {
-  "ble": {},
-  "cloud": {
-    "connected": true
+  ble: {},
+  cloud: {
+    connected: true
   },
-  "input:0": {
-    "id": 0,
-    "state": false
+  'input:0': {
+    id: 0,
+    state: false
   },
-  "mqtt": {
-    "connected": false
+  mqtt: {
+    connected: false
   },
-  "switch:0": {
-    "id": 0,
-    "source": "WS_in",
-    "output": false,
-    "temperature": {
-      "tC": 52.8,
-      "tF": 127.1
+  'switch:0': {
+    id: 0,
+    source: 'WS_in',
+    output: false,
+    temperature: {
+      tC: 52.8,
+      tF: 127.1
     }
   },
-  "sys": {
-    "mac": "7C87CE63B954"
+  sys: {
+    mac: '7C87CE63B954'
   },
-  "wifi": {
-    "sta_ip": "192.168.88.116",
-    "status": "got ip",
-    "ssid": "Wilhelm",
-    "rssi": -49
+  wifi: {
+    sta_ip: '192.168.88.116',
+    status: 'got ip',
+    ssid: 'Wilhelm',
+    rssi: -49
   }
 }
 
 const sampleDeviceInfo = {
-  id: "shellyplusht-7c87ce63b954",
-  mac: "7C87CE63B954",
-  model: "SNSW-001X16EU",
+  id: 'shellyplusht-7c87ce63b954',
+  mac: '7C87CE63B954',
+  model: 'SNSW-001X16EU',
   gen: 2,
-  name: "Test Device"
+  name: 'Test Device'
 }
 
 describe('Device Class Unit Tests', () => {
@@ -50,7 +50,7 @@ describe('Device Class Unit Tests', () => {
 
   beforeEach(() => {
     sinon.restore()
-    
+
     mockApp = {
       debug: sinon.stub(),
       error: sinon.stub(),
@@ -82,8 +82,14 @@ describe('Device Class Unit Tests', () => {
   describe('Device Creation', () => {
     it('should create a device with correct initial properties', () => {
       const { Device } = require('../dist/device')
-      const device = new Device(mockApp, mockPlugin, deviceSettings, '12345', '192.168.1.100')
-      
+      const device = new Device(
+        mockApp,
+        mockPlugin,
+        deviceSettings,
+        '12345',
+        '192.168.1.100'
+      )
+
       expect(device.id).to.equal('12345')
       expect(device.connected).to.be.false
       expect(device.address).to.equal('192.168.1.100')
@@ -98,8 +104,14 @@ describe('Device Class Unit Tests', () => {
 
     beforeEach(() => {
       const { Device } = require('../dist/device')
-      device = new Device(mockApp, mockPlugin, deviceSettings, 'shellyplusht-7c87ce63b954', '192.168.1.100')
-      
+      device = new Device(
+        mockApp,
+        mockPlugin,
+        deviceSettings,
+        'shellyplusht-7c87ce63b954',
+        '192.168.1.100'
+      )
+
       // Simulate connected state
       device.connected = true
       device.id = sampleDeviceInfo.id
@@ -122,17 +134,23 @@ describe('Device Class Unit Tests', () => {
       const values = message.updates[0].values
 
       // Check for switch state
-      const switchStateValue = values.find((v: any) => v.path === 'electrical.switches.testDevice.state')
+      const switchStateValue = values.find(
+        (v: any) => v.path === 'electrical.switches.testDevice.state'
+      )
       expect(switchStateValue).to.exist
       expect(switchStateValue.value).to.be.false
 
       // Check for device name
-      const nameValue = values.find((v: any) => v.path === 'electrical.switches.testDevice.name')
+      const nameValue = values.find(
+        (v: any) => v.path === 'electrical.switches.testDevice.name'
+      )
       expect(nameValue).to.exist
       expect(nameValue.value).to.equal('Test Device')
 
       // Check for model
-      const modelValue = values.find((v: any) => v.path === 'electrical.switches.testDevice.model')
+      const modelValue = values.find(
+        (v: any) => v.path === 'electrical.switches.testDevice.model'
+      )
       expect(modelValue).to.exist
       expect(modelValue.value).to.equal('SNSW-001X16EU')
     })
@@ -143,7 +161,9 @@ describe('Device Class Unit Tests', () => {
       const handleMessageCall = mockApp.handleMessage.getCall(1)
       const values = handleMessageCall.args[1].updates[0].values
 
-      const tempValue = values.find((v: any) => v.path === 'electrical.switches.testDevice.temperature')
+      const tempValue = values.find(
+        (v: any) => v.path === 'electrical.switches.testDevice.temperature'
+      )
       expect(tempValue).to.exist
       expect(tempValue.value).to.equal(52.8 + 273.15) // Celsius to Kelvin conversion
     })
@@ -169,7 +189,9 @@ describe('Device Class Unit Tests', () => {
       const meta = message.updates[0].meta
 
       // Check for device displayName
-      const deviceMeta = meta.find((m: any) => m.path === 'electrical.switches.testDevice')
+      const deviceMeta = meta.find(
+        (m: any) => m.path === 'electrical.switches.testDevice'
+      )
       expect(deviceMeta).to.exist
       expect(deviceMeta.value.displayName).to.equal('Test Shelly Device')
 
@@ -188,7 +210,7 @@ describe('Device Class Unit Tests', () => {
       device.registerForPuts(sampleDeviceStatus)
 
       expect(mockApp.registerPutHandler.called).to.be.true
-      
+
       const registerCalls = mockApp.registerPutHandler.getCalls()
       expect(registerCalls).to.have.length(1)
 
@@ -212,16 +234,24 @@ describe('Device Class Unit Tests', () => {
       const mockFunc = sinon.stub().resolves({ output: true })
       const mockCallback = sinon.stub()
 
-      const result = device.valueHandler('vessels.self', 'test.path', true, mockFunc, mockCallback)
+      const result = device.valueHandler(
+        'vessels.self',
+        'test.path',
+        true,
+        mockFunc,
+        mockCallback
+      )
 
       expect(result).to.deep.equal({ state: 'PENDING' })
 
       setTimeout(() => {
         expect(mockFunc.calledWith(true)).to.be.true
-        expect(mockCallback.calledWith({
-          state: 'COMPLETED',
-          statusCode: 200
-        })).to.be.true
+        expect(
+          mockCallback.calledWith({
+            state: 'COMPLETED',
+            statusCode: 200
+          })
+        ).to.be.true
         done()
       }, 10)
     })
@@ -230,14 +260,22 @@ describe('Device Class Unit Tests', () => {
       const mockFunc = sinon.stub().rejects(new Error('Test error'))
       const mockCallback = sinon.stub()
 
-      device.valueHandler('vessels.self', 'test.path', true, mockFunc, mockCallback)
+      device.valueHandler(
+        'vessels.self',
+        'test.path',
+        true,
+        mockFunc,
+        mockCallback
+      )
 
       setTimeout(() => {
-        expect(mockCallback.calledWith({
-          state: 'COMPLETED',
-          statusCode: 400,
-          message: 'Test error'
-        })).to.be.true
+        expect(
+          mockCallback.calledWith({
+            state: 'COMPLETED',
+            statusCode: 400,
+            message: 'Test error'
+          })
+        ).to.be.true
         expect(mockApp.error.calledWith('Test error')).to.be.true
         expect(mockApp.setPluginError.calledWith('Test error')).to.be.true
         done()
@@ -249,14 +287,23 @@ describe('Device Class Unit Tests', () => {
       const mockCallback = sinon.stub()
       const validator = sinon.stub().returns(false) // Validation fails
 
-      device.valueHandler('vessels.self', 'test.path', true, mockFunc, mockCallback, validator)
+      device.valueHandler(
+        'vessels.self',
+        'test.path',
+        true,
+        mockFunc,
+        mockCallback,
+        validator
+      )
 
       setTimeout(() => {
         expect(validator.calledWith({ output: false })).to.be.true
-        expect(mockCallback.calledWith({
-          state: 'COMPLETED',
-          statusCode: 400
-        })).to.be.true
+        expect(
+          mockCallback.calledWith({
+            state: 'COMPLETED',
+            statusCode: 400
+          })
+        ).to.be.true
         done()
       }, 10)
     })
@@ -283,7 +330,7 @@ describe('Device Class Unit Tests', () => {
       const { Device } = require('../dist/device')
       device = new Device(mockApp, mockPlugin, deviceSettings, '192.168.1.100')
       device.name = 'Test Device'
-      
+
       const devicePath = device.getDevicePath()
       expect(devicePath).to.equal('electrical.switches.testDevice')
     })
@@ -305,15 +352,20 @@ describe('Device Class Unit Tests', () => {
     it('should convert temperature object correctly', () => {
       const tempObj = { tC: 25.0, tF: 77.0 }
       const expectedKelvin = 25.0 + 273.15
-      
+
       // Test the temperature converter function
       const { Device } = require('../dist/device')
-      const testDevice = new Device(mockApp, mockPlugin, deviceSettings, '192.168.1.100')
-      
+      const testDevice = new Device(
+        mockApp,
+        mockPlugin,
+        deviceSettings,
+        '192.168.1.100'
+      )
+
       // Create a test status with temperature
       const testStatus = {
-        "switch:0": {
-          "temperature": tempObj
+        'switch:0': {
+          temperature: tempObj
         }
       }
 
@@ -321,9 +373,11 @@ describe('Device Class Unit Tests', () => {
 
       testDevice.connected = true
       testDevice.sendDeltas(testStatus)
-      
+
       const values = mockApp.handleMessage.getCall(1).args[1].updates[0].values
-      const tempValue = values.find((v: any) => v.path === 'electrical.switches.testDevice.temperature')
+      const tempValue = values.find(
+        (v: any) => v.path === 'electrical.switches.testDevice.temperature'
+      )
       expect(tempValue).to.exist
       expect(tempValue.value).to.equal(expectedKelvin)
     })
@@ -335,10 +389,16 @@ describe('Device Class Unit Tests', () => {
         enabled: true,
         devicePath: 'minimal'
       }
-      
+
       const { Device } = require('../dist/device')
-      const device = new Device(mockApp, mockPlugin, minimalSettings, '123456', '192.168.1.100')
-      
+      const device = new Device(
+        mockApp,
+        mockPlugin,
+        minimalSettings,
+        '123456',
+        '192.168.1.100'
+      )
+
       expect(device.address).to.equal('192.168.1.100')
       expect(device.connected).to.be.false
     })
@@ -351,10 +411,15 @@ describe('Device Class Unit Tests', () => {
         maxReconnectAttempts: 5,
         enableReconnection: true
       }
-      
+
       const { Device } = require('../dist/device')
-      const device = new Device(mockApp, mockPlugin, settingsWithReconnect, '192.168.1.100')
-      
+      const device = new Device(
+        mockApp,
+        mockPlugin,
+        settingsWithReconnect,
+        '192.168.1.100'
+      )
+
       expect(device.reconnectionAttempts).to.equal(0)
       expect(device.reconnecting).to.be.false
     })
@@ -363,10 +428,15 @@ describe('Device Class Unit Tests', () => {
       const defaultSettings = {
         enabled: true
       }
-      
+
       const { Device } = require('../dist/device')
-      const device = new Device(mockApp, mockPlugin, defaultSettings, '192.168.1.100')
-      
+      const device = new Device(
+        mockApp,
+        mockPlugin,
+        defaultSettings,
+        '192.168.1.100'
+      )
+
       expect(device.reconnectionAttempts).to.equal(0)
       expect(device.reconnecting).to.be.false
     })
@@ -376,10 +446,15 @@ describe('Device Class Unit Tests', () => {
         enabled: true,
         enableReconnection: false
       }
-      
+
       const { Device } = require('../dist/device')
-      const device = new Device(mockApp, mockPlugin, settingsWithoutReconnect, '192.168.1.100')
-      
+      const device = new Device(
+        mockApp,
+        mockPlugin,
+        settingsWithoutReconnect,
+        '192.168.1.100'
+      )
+
       expect(device.reconnectionAttempts).to.equal(0)
       expect(device.reconnecting).to.be.false
     })
@@ -387,7 +462,7 @@ describe('Device Class Unit Tests', () => {
     it('should expose reconnection status methods', () => {
       const { Device } = require('../dist/device')
       const device = new Device(mockApp, mockPlugin, {}, '192.168.1.100')
-      
+
       expect(typeof device.forceReconnect).to.equal('function')
       expect(typeof device.reconnecting).to.equal('boolean')
       expect(typeof device.reconnectionAttempts).to.equal('number')
