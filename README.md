@@ -11,7 +11,7 @@ This plugin supports any Gen 2 or better Shelly device, automatically discoverin
 - **Automatic Device Discovery**: Uses mDNS to automatically find Shelly devices on your network
 - **Real-time Updates**: WebSocket connection for instant status updates
 - **Component Mapping**: Maps Shelly components to Signal K electrical and environmental paths
-- **Device Control**: Send commands to control switches, lights, and other controllable components
+- **Device Control**: Send PUT messages to control switches, lights, and other controllable components
 - **Reconnection Handling**: Automatic reconnection 
 
 ## Supported Shelly Component Types
