@@ -417,7 +417,7 @@ export class Device {
     return path + (key ? '.' + key : '')
   }
 
-  private getComponentDeltas (
+  private getSwitchableComponentDeltas (
     status: any,
     component: string,
     onKey: string,
@@ -549,10 +549,10 @@ export class Device {
       this.sentStaticDeltas = true
     }
 
-    this.getComponentDeltas(status, 'switch', 'output', values)
-    this.getComponentDeltas(status, 'light', 'output', values)
-    this.getComponentDeltas(status, 'rgb', 'output', values)
-    this.getComponentDeltas(status, 'rgbw', 'output', values)
+    this.getSwitchableComponentDeltas(status, 'switch', 'output', values)
+    this.getSwitchableComponentDeltas(status, 'light', 'output', values)
+    this.getSwitchableComponentDeltas(status, 'rgb', 'output', values)
+    this.getSwitchableComponentDeltas(status, 'rgbw', 'output', values)
     this.getReadKeys(status, values)
 
     if (values.length > 0) {
@@ -926,11 +926,8 @@ const switchReadPaths = () => {
     {
       key: `pf`,
       path: 'powerFactor',
-      converter: (val: any) => {
-        return val * 1000
-      },
       meta: {
-        units: 'W'
+        units: 'ratio'
       }
     },
     {
