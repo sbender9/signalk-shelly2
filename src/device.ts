@@ -23,12 +23,18 @@ type PendingRequest = {
 }
 
 const MAX_INPUTS = 10
+export const supportedComponents = ['switch', 'light', 'rgb', 'rgbw']
+const componentNames: { [key: string]: any } = {
+  switch: 'Switch',
+  light: 'Light',
+  rgb: 'RGB',
+  rgbw: 'RGBW'
+}
 
 export class Device {
   id: string | null = null
   connected: boolean = false
-  numSwitches: number = 0
-  numLights: number = 0
+  componentCounts: { [key: string]: number } = {}
   address: string
   hostname: string | undefined
   name: string | undefined = undefined
@@ -227,10 +233,6 @@ export class Device {
         this.ws = await this.createWebSocketConnection()
         this.setupWebSocketHandlers()
 
-        // Re-register for status updates after reconnection
-        const result = await this.send('Shelly.GetStatus')
-        this.registerForPuts(result)
-
         this.connected = true
         this.reconnectAttempts = 0
         this.isReconnecting = false
@@ -348,59 +350,41 @@ export class Device {
     this.sendDeltas(status)
   }
 
-  async setSwitch (value: any, switchIdx: number) {
-    const expected =
-      value === 1 || value === 'on' || value === 'true' || value === true
-    await this.send('Switch.Set', { id: switchIdx, on: expected })
-    const status = await this.getSwitch(switchIdx)
-    if (status.output !== expected) {
-      throw new Error(`Failed to set switch ${switchIdx} to ${expected}`)
+  async setComponentValue (
+    component: string,
+    idx: number,
+    getKey: string,
+    setKey: string,
+    value: any
+  ) {
+    await this.send(`${componentNames[component]}.Set`, {
+      id: idx,
+      [setKey]: value
+    })
+    const status = await this.getComponentStatus(component, idx)
+    if (status[getKey] !== value) {
+      throw new Error(`Failed to set ${component} ${idx} to ${value}`)
     }
-    this.sendDeltas({ [`switch:${switchIdx}`]: status })
+    this.sendDeltas({ [`${component}:${idx}`]: status })
   }
 
-  async getSwitch (switchIdx: number): Promise<any> {
-    const res = await this.send('Switch.GetStatus', { id: switchIdx })
+  async getComponentStatus (component: string, idx: number): Promise<any> {
+    const res = await this.send(`${componentNames[component]}.GetStatus`, {
+      id: idx
+    })
     return res
   }
 
-  async setLight (value: any, lightIdx: number) {
-    const expected =
-      value === 1 || value === 'on' || value === 'true' || value === true
-    await this.send('Light.Set', { id: lightIdx, on: expected })
-    const status = await this.getLight(lightIdx)
-    if (status.output !== expected) {
-      throw new Error(`Failed to set light ${lightIdx} to ${expected}`)
-    }
-    this.sendDeltas({ [`light:${lightIdx}`]: status })
-  }
+  getCapabilities (status: any) {
+    supportedComponents.forEach(component => {
+      this.componentCounts[component] = 0
 
-  async setDimmer (value: any, lightIdx: number) {
-    const expected = Math.round(value * 100)
-    await this.send('Light.Set', { id: lightIdx, brightness: expected })
-    const status = await this.getLight(lightIdx)
-    if (status.brightness !== expected) {
-      throw new Error(`Failed to set light ${lightIdx} to ${expected}`)
-    }
-    this.sendDeltas({ [`light:${lightIdx}`]: status })
-  }
-
-  async getLight (lightIdx: number): Promise<any> {
-    const res = await this.send('Light.GetStatus', { id: lightIdx })
-    return res
-  }
-
-  private getCapabilities (status: any) {
-    this.numSwitches = 0
-    this.numLights = 0
-    for (let i = 0; i < 10; i++) {
-      if (status[`switch:${i}`]) {
-        this.numSwitches++
+      for (let i = 0; i < 10; i++) {
+        if (status[`${component}:${i}`]) {
+          this.componentCounts[component]++
+        }
       }
-      if (status[`light:${i}`]) {
-        this.numLights++
-      }
-    }
+    })
   }
 
   private getDevicePath (key?: string) {
@@ -411,38 +395,131 @@ export class Device {
     return `electrical.switches.${name}${key ? '.' + key : ''}`
   }
 
-  private getSwitchProps (relay: number) {
+  private getComponentProps (component: string, relay: number) {
     return this.deviceSettings
-      ? this.deviceSettings[`switch${relay}`]
+      ? this.deviceSettings[`${component}${relay}`]
       : undefined
   }
 
-  private getLightProps (light: number) {
-    return this.deviceSettings
-      ? this.deviceSettings[`light${light}`]
-      : undefined
-  }
-
-  private getSwitchPath (relay: number, key: any = 'state') {
-    const switchProps = this.getSwitchProps(relay)
+  private getComponentPath (
+    component: string,
+    relay: number,
+    key: string | undefined
+  ) {
+    const componentProps = this.getComponentProps(component, relay)
 
     let path = this.getDevicePath()
-    if (this.numSwitches > 1) {
-      path = path + `.${switchProps?.switchPath || relay}`
+    if (this.componentCounts[component] > 1) {
+      path =
+        path + `.${componentProps?.path || componentProps?.switchPath || relay}`
     }
 
     return path + (key ? '.' + key : '')
   }
 
-  private getLightPath (light: number, key: any = 'state') {
-    const lightProps = this.getLightProps(light)
+  private getComponentDeltas (
+    status: any,
+    component: string,
+    onKey: string,
+    values: any[]
+  ) {
+    let count = this.componentCounts[component]
+    if (count > 0) {
+      for (let i = 0; i < count; i++) {
+        const componentProps = this.getComponentProps(component, i)
 
-    let path = this.getDevicePath()
-    if (this.numLights > 1) {
-      path = path + `.${lightProps?.lightPath || light}`
+        if (componentProps?.enabled === false) {
+          continue
+        }
+
+        const componentStatus = status[`${component}:${i}`]
+
+        if (componentStatus !== undefined) {
+          values.push({
+            path: this.getComponentPath(component, i, 'state'),
+            value: componentStatus[onKey] ? true : false
+          })
+
+          if (componentStatus.brightness !== undefined) {
+            values.push({
+              path: this.getComponentPath(component, i, 'dimmingLevel'),
+              value: componentStatus.brightness / 100
+            })
+          }
+
+          if (componentStatus.rgb !== undefined) {
+            let rgb: number[] = componentStatus.rgb
+            values.push({
+              path: this.getComponentPath(component, i, 'rgb'),
+              value: rgb
+            })
+
+            if (
+              this.deviceSettings?.presets &&
+              this.deviceSettings.presets.length > 0
+            ) {
+              let preset = null
+              if (rgb !== undefined) {
+                preset = this.deviceSettings.presets.find((preset: any) => {
+                  return (
+                    rgb[0] == preset.red &&
+                    rgb[1] == preset.green &&
+                    rgb[2] == preset.blue &&
+                    (preset.white === undefined || rgb[3] == preset.white) &&
+                    (preset.bright === 0 ||
+                      componentStatus.brightness == preset.bright)
+                  )
+                })
+              }
+              values.push({
+                path: this.getComponentPath(component, i, 'preset'),
+                value: preset
+              })
+            }
+          }
+
+          if (componentStatus.white !== undefined) {
+            values.push({
+              path: this.getComponentPath(component, i, 'white'),
+              value: componentStatus.white
+            })
+          }
+
+          let readPaths = switchReadPaths()
+          readPaths?.forEach((p: any) => {
+            const path = p.path || p.key
+            const converter = p.converter
+            const val = componentStatus[p.key]
+            if (val !== undefined) {
+              values.push({
+                path: this.getComponentPath(component, i, path),
+                value: converter ? converter(val) : val
+              })
+            }
+          })
+        }
+      }
     }
+  }
 
-    return path + (key ? '.' + key : '')
+  private getReadKeys (status: any, values: any[]) {
+    readKeys.forEach((p: any) => {
+      for (let i = 0; i < MAX_INPUTS; i++) {
+        const key = p.key
+        const path = p.path ? `.${p.path}` : ''
+        const converter = p.converter
+        const val = status[`${key}:${i}`]
+        if (val !== undefined) {
+          const converted = converter ? converter(val) : val
+          if (converted !== undefined) {
+            values.push({
+              path: this.getComponentPath('input', i, `${key}.${i}${path}`),
+              value: converted
+            })
+          }
+        }
+      }
+    })
   }
 
   sendDeltas (status: any) {
@@ -457,7 +534,7 @@ export class Device {
       this.sentMeta = true
     }
 
-    if ( this.sentStaticDeltas === false ) {
+    if (this.sentStaticDeltas === false) {
       if (this.name) {
         values.push({
           path: this.getDevicePath('name'),
@@ -472,92 +549,11 @@ export class Device {
       this.sentStaticDeltas = true
     }
 
-    if (this.numSwitches > 0) {
-      for (let i = 0; i < this.numSwitches; i++) {
-        const switchProps = this.getSwitchProps(i)
-
-        if (switchProps?.enabled === false) {
-          continue
-        }
-
-        const switchStatus = status[`switch:${i}`]
-
-        if (switchStatus !== undefined) {
-          values.push({
-            path: this.getSwitchPath(i),
-            value: switchStatus?.output ? true : false
-          })
-
-          let readPaths = switchReadPaths()
-          readPaths?.forEach((p: any) => {
-            const path = p.path || p.key
-            const converter = p.converter
-            const val = switchStatus[p.key]
-            if (val !== undefined) {
-              values.push({
-                path: this.getSwitchPath(i, path),
-                value: converter ? converter(val) : val
-              })
-            }
-          })
-        }
-      }
-    }
-
-    if (this.numLights > 0) {
-      for (let i = 0; i < this.numLights; i++) {
-        const lightProps = this.getLightProps(i)
-
-        if (lightProps?.enabled === false) {
-          continue
-        }
-
-        const lightStatus = status[`light:${i}`]
-
-        if (lightStatus !== undefined) {
-          values.push({
-            path: this.getLightPath(i),
-            value: lightStatus?.output ? true : false
-          })
-
-          values.push({
-            path: this.getLightPath(i, 'dimmingLevel'),
-            value: lightStatus?.brightness / 100
-          })
-
-          let readPaths = switchReadPaths()
-          readPaths?.forEach((p: any) => {
-            const path = p.path || p.key
-            const converter = p.converter
-            const val = lightStatus[p.key]
-            if (val !== undefined) {
-              values.push({
-                path: this.getLightPath(i, path),
-                value: converter ? converter(val) : val
-              })
-            }
-          })
-        }
-      }
-    }
-
-    readKeys.forEach((p: any) => {
-      for (let i = 0; i < MAX_INPUTS; i++) {
-        const key = p.key
-        const path = p.path ? `.${p.path}` : ''
-        const converter = p.converter
-        const val = status[`${key}:${i}`]
-        if (val !== undefined) {
-          const converted = converter ? converter(val) : val
-          if (converted !== undefined) {
-            values.push({
-              path: this.getSwitchPath(i, `${key}.${i}${path}`),
-              value: converted
-            })
-          }
-        }
-      }
-    })
+    this.getComponentDeltas(status, 'switch', 'output', values)
+    this.getComponentDeltas(status, 'light', 'output', values)
+    this.getComponentDeltas(status, 'rgb', 'output', values)
+    this.getComponentDeltas(status, 'rgbw', 'output', values)
+    this.getReadKeys(status, values)
 
     if (values.length > 0) {
       this.debug('sending deltas %j', values)
@@ -568,6 +564,81 @@ export class Device {
           }
         ]
       })
+    }
+  }
+
+  private getComponentMeta (status: any, component: string, meta: any[]) {
+    let count = this.componentCounts[component]
+
+    for (let i = 0; i < count; i++) {
+      const componentProps = this.getComponentProps(component, i)
+
+      if (count > 1 && componentProps?.enabled === false) {
+        continue
+      }
+
+      const componentStatus = status[`${component}:${i}`]
+
+      meta.push({
+        path: this.getComponentPath(component, i, 'state'),
+        value: {
+          units: 'bool',
+          displayName: componentProps?.displayName
+          //timeout: this.ttl ? (this.ttl / 1000) : undefined
+        }
+      })
+
+      if (
+        this.deviceSettings?.presets &&
+        this.deviceSettings.presets.length > 0
+      ) {
+        meta.push({
+          path: this.getComponentPath(component, i, 'preset'),
+          value: {
+            displayName: componentProps?.displayName,
+            possibleValues: [
+              ...this.deviceSettings.presets.map((preset: any) => {
+                return {
+                  title: preset.name,
+                  value: preset.name
+                }
+              })
+            ],
+            enum: [
+              ...this.deviceSettings.presets.map((preset: any) => preset.name)
+            ]
+          }
+        })
+      }
+
+      if (componentStatus?.brightness !== undefined) {
+        meta.push({
+          path: this.getComponentPath('light', i, 'dimmingLevel'),
+          value: {
+            units: 'ratio',
+            displayName: componentProps.displayName
+          }
+        })
+      }
+
+      let readPaths = switchReadPaths()
+      readPaths?.forEach((p: any) => {
+        if (p.meta && componentStatus && componentStatus[p.key] !== undefined) {
+          meta.push({
+            path: this.getComponentPath(component, i, p.path || p.key),
+            value: p.meta
+          })
+        }
+      })
+
+      if (count > 1 && componentProps?.displayName) {
+        meta.push({
+          path: this.getComponentPath(component, i, undefined),
+          value: {
+            displayName: componentProps?.displayName
+          }
+        })
+      }
     }
   }
 
@@ -589,134 +660,10 @@ export class Device {
       })
     }
 
-    if (this.numSwitches > 1) {
-      for (let i = 0; i < this.numSwitches; i++) {
-        const switchProps = this.getSwitchProps(i)
-
-        if (switchProps?.enabled === false) {
-          continue
-        }
-
-        meta.push({
-          path: this.getSwitchPath(i),
-          value: {
-            units: 'bool',
-            displayName: switchProps?.displayName
-            //timeout: this.ttl ? (this.ttl / 1000) : undefined
-          }
-        })
-
-        let readPaths = switchReadPaths()
-        readPaths?.forEach((p: any) => {
-          if (p.meta && status[`switch:${i}`][p.key] !== undefined) {
-            meta.push({
-              path: this.getSwitchPath(i, p.path || p.key),
-              value: p.meta
-            })
-          }
-        })
-
-        if (switchProps?.displayName) {
-          meta.push({
-            path: this.getSwitchPath(i, null),
-            value: {
-              displayName: switchProps?.displayName
-            }
-          })
-        }
-      }
-    } else if (this.numSwitches === 1) {
-      meta.push({
-        path: this.getSwitchPath(0),
-        value: {
-          units: 'bool',
-          displayName: this.deviceSettings?.displayName || this.name
-        }
-      })
-
-      let readPaths = switchReadPaths()
-      readPaths?.forEach((p: any) => {
-        if (p.meta && status[`switch:${0}`][p.key] !== undefined) {
-          meta.push({
-            path: this.getSwitchPath(0, p.path || p.key),
-            value: p.meta,
-            displayName: this.deviceSettings?.displayName || this.name
-          })
-        }
-      })
-    }
-
-    if (this.numLights > 1) {
-      for (let i = 0; i < this.numLights; i++) {
-        const lightProps = this.getLightProps(i)
-
-        if (lightProps?.enabled === false) {
-          continue
-        }
-
-        meta.push({
-          path: this.getLightPath(i),
-          value: {
-            units: 'bool',
-            displayName: lightProps?.displayName
-          }
-        })
-
-        meta.push({
-          path: this.getLightPath(i, 'dimmingLevel'),
-          value: {
-            units: 'ratio',
-            displayName: lightProps?.displayName
-          }
-        })
-
-        let readPaths = switchReadPaths()
-        readPaths?.forEach((p: any) => {
-          if (p.meta && status[`light:${i}`][p.key] !== undefined) {
-            meta.push({
-              path: this.getLightPath(i, p.path || p.key),
-              value: p.meta
-            })
-          }
-        })
-
-        if (lightProps?.displayName) {
-          meta.push({
-            path: this.getLightPath(i, null),
-            value: {
-              displayName: lightProps?.displayName
-            }
-          })
-        }
-      }
-    } else if ( this.numLights === 1) {
-      meta.push({
-        path: this.getLightPath(0),
-        value: {
-          units: 'bool',
-          displayName: this.deviceSettings?.displayName || this.name
-        }
-      })
-
-      meta.push({
-        path: this.getLightPath(0, 'dimmingLevel'),
-        value: {
-          units: 'ratio',
-          displayName: this.deviceSettings?.displayName
-        }
-      })
-
-      let readPaths = switchReadPaths()
-      readPaths?.forEach((p: any) => {
-        if (p.meta && status[`light:${0}`][p.key] !== undefined) {
-          meta.push({
-            path: this.getLightPath(0, p.path || p.key),
-            value: p.meta,
-            displayName: this.deviceSettings?.displayName || this.name
-          })
-        }
-      })
-    }
+    this.getComponentMeta(status, 'switch', meta)
+    this.getComponentMeta(status, 'light', meta)
+    this.getComponentMeta(status, 'rgb', meta)
+    this.getComponentMeta(status, 'rgbw', meta)
 
     readKeys.forEach((p: any) => {
       for (let i = 0; i < MAX_INPUTS; i++) {
@@ -728,7 +675,7 @@ export class Device {
           const converted = converter ? converter(val) : val
           if (converted !== undefined) {
             meta.push({
-              path: this.getSwitchPath(i, `${key}.${i}${path}`),
+              path: this.getComponentPath('input', i, `${key}.${i}${path}`),
               value: p.meta
             })
           }
@@ -748,16 +695,17 @@ export class Device {
     }
   }
 
-  registerForPuts (status: any): boolean {
-    if (this.numSwitches > 0) {
-      for (let i = 0; i < this.numSwitches; i++) {
-        const switchProps = this.getSwitchProps(i)
+  private registerComponentPuts (status: any, component: string) {
+    let count = this.componentCounts[component]
+    if (count > 0) {
+      for (let i = 0; i < count; i++) {
+        const componentProps = this.getComponentProps(component, i)
 
-        if (switchProps?.enabled === false) {
+        if (componentProps?.enabled === false) {
           continue
         }
 
-        const path = this.getSwitchPath(i)
+        const path = this.getComponentPath(component, i, 'state')
 
         this.app.registerPutHandler(
           'vessels.self',
@@ -767,73 +715,168 @@ export class Device {
               context,
               path,
               value,
-              (device: Device, value: any) => {
-                return device.setSwitch(value, i)
+              (value: any) => {
+                return this.setComponentValue(
+                  component,
+                  i,
+                  'output',
+                  'on',
+                  value === 1 ||
+                    value === 'on' ||
+                    value === 'true' ||
+                    value === true
+                )
               },
               cb
             )
           }
         )
-      }
-    }
 
-    if (this.numLights > 0) {
-      for (let i = 0; i < this.numLights; i++) {
-        const lightProps = this.getLightProps(i)
+        const componentStatus = status[`${component}:${i}`]
 
-        if (lightProps?.enabled === false) {
-          continue
+        if (componentStatus?.brightness !== undefined) {
+          this.app.registerPutHandler(
+            'vessels.self',
+            this.getComponentPath(component, i, 'dimmingLevel'),
+            (context: string, path: string, value: any, cb: any) => {
+              return this.valueHandler(
+                context,
+                path,
+                value,
+                (value: any) => {
+                  return this.setComponentValue(
+                    component,
+                    i,
+                    'brightness',
+                    'brightness',
+                    Math.round(value * 100)
+                  )
+                },
+                cb
+              )
+            }
+          )
         }
 
-        const path = this.getLightPath(i)
+        if (componentStatus?.rgb !== undefined) {
+          this.app.registerPutHandler(
+            'vessels.self',
+            this.getComponentPath(component, i, 'rgb'),
+            (context: string, path: string, value: any, cb: any) => {
+              return this.valueHandler(
+                context,
+                path,
+                value,
+                (value: any) => {
+                  return this.setComponentValue(
+                    component,
+                    i,
+                    'rgb',
+                    'rgb',
+                    value
+                  )
+                },
+                cb
+              )
+            }
+          )
 
-        this.app.registerPutHandler(
-          'vessels.self',
-          path,
-          (context: string, path: string, value: any, cb: any) => {
-            return this.valueHandler(
-              context,
-              path,
-              value,
-              (device: Device, value: any) => {
-                return device.setLight(value, i)
-              },
-              cb
+          if (
+            this.deviceSettings?.presets &&
+            this.deviceSettings.presets.length > 0
+          ) {
+            this.app.registerPutHandler(
+              'vessels.self',
+              this.getComponentPath(component, i, 'rgb'),
+              (context: string, path: string, value: any, cb: any) => {
+                return this.valueHandler(
+                  context,
+                  path,
+                  value,
+                  (value: any) => {
+                    return new Promise((resolve, reject) => {
+                      const preset = this.deviceSettings.presets.find(
+                        (preset: any) => preset.name == value
+                      )
+                      if (!preset || value === 'Unknown') {
+                        reject(new Error(`invalid preset ${value}`))
+                        return
+                      }
+                      const rgb = [preset.red, preset.green, preset.blue]
+                      if (preset.white !== undefined) {
+                        rgb.push(preset.white)
+                      }
+                      this.send(`${componentNames[component]}.Set`, {
+                        id: i,
+                        rgb
+                      })
+                        .then(() => {
+                          if (
+                            preset.bright === undefined ||
+                            preset.bright === 0
+                          ) {
+                            resolve(true)
+                          } else {
+                            this.send(`${componentNames[component]}.Set`, {
+                              id: i,
+                              brightness: preset.bright
+                            })
+                              .then(resolve)
+                              .catch(reject)
+                          }
+                        })
+                        .catch(reject)
+                    })
+                  },
+                  cb
+                )
+              }
             )
           }
-        )
-        const dimmerPath = this.getLightPath(i, 'dimmingLevel')
-
-        this.app.registerPutHandler(
-          'vessels.self',
-          dimmerPath,
-          (context: string, path: string, value: any, cb: any) => {
-            return this.valueHandler(
-              context,
-              path,
-              value,
-              (device: any, value: any) => {
-                return this.setDimmer(value, i)
-              },
-              cb
-            )
-          }
-        )
+        }
+        if (componentStatus?.white !== undefined) {
+          this.app.registerPutHandler(
+            'vessels.self',
+            this.getComponentPath(component, i, 'white'),
+            (context: string, path: string, value: any, cb: any) => {
+              return this.valueHandler(
+                context,
+                path,
+                value,
+                (value: any) => {
+                  return this.setComponentValue(
+                    component,
+                    i,
+                    'white',
+                    'white',
+                    Math.round(value * 100)
+                  )
+                },
+                cb
+              )
+            }
+          )
+        }
       }
     }
+  }
 
-    return true
+  registerForPuts (status: any) {
+    this.registerComponentPuts(status, 'switch')
+    this.registerComponentPuts(status, 'light')
+    this.registerComponentPuts(status, 'rgb')
+    this.registerComponentPuts(status, 'rgbw')
   }
 
   valueHandler (
     context: string,
     path: string,
     value: any,
-    func: (device: Device, value: any) => Promise<any>,
+    func: (value: any) => Promise<any>,
     cb: any,
     validator?: (result: any) => boolean
   ) {
-    func(this, value)
+    func(value)
       .then((status: any) => {
         let code = validator === undefined || validator(status) ? 200 : 400
         cb({
