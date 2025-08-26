@@ -34,7 +34,8 @@ export const supportedComponents = [
   'temperature',
   'humidity',
   'voltmeter',
-  'input'
+  'input',
+  'smoke'
 ]
 const componentNames: { [key: string]: any } = {
   switch: 'Switch',
@@ -46,7 +47,8 @@ const componentNames: { [key: string]: any } = {
   pm1: 'PM1',
   temperature: 'Temperature',
   humidity: 'Humidity',
-  voltmeter: 'Voltmeter'
+  voltmeter: 'Voltmeter',
+  smoke: 'Smoke'
 }
 
 export class Device {
@@ -155,6 +157,8 @@ export class Device {
           `Initial device status retrieved successfully from ${this.id}`
         )
         this.debug(JSON.stringify(result, null, 2))
+        //result['smoke:0'] = { alarm: false, mute: false }
+        //result['smoke:1'] = { alarm: true, mute: true }
         this.getCapabilities(result)
         this.registerForPuts(result)
         this.sendDeltas(result)
@@ -520,6 +524,40 @@ export class Device {
     }
   }
 
+  private getSmokeDeltas (
+    status: any,
+    values: any[]
+  ) {
+    const component = 'smoke'
+    let count = this.componentCounts[component]
+    if (count > 0) {
+      for (let i = 0; i < count; i++) {
+        const componentProps = this.getComponentProps(component, i)
+
+        if (componentProps?.enabled === false) {
+          continue
+        }
+
+        const componentStatus = status[`${component}:${i}`]
+
+        if (componentStatus !== undefined) {
+          const method = ['visual']
+          if ( componentStatus.mute !== true ) {
+            method.push('sound')
+          }
+          values.push({
+            path: `notifications.${this.getComponentPath(component, i, undefined)}`,
+            value: {
+              state: componentStatus.alarm ? 'alarm' : 'normal',
+              method,
+              message: `${componentStatus.alarm ? 'Smoke detected' : 'No smoke detected'} in ${componentProps?.displayName || this.deviceSettings?.displayName || i}`
+            }
+          })
+        }
+      }
+    }
+  }
+
   private getReadKeys (status: any, values: any[]) {
     readKeys.forEach((p: any) => {
       for (let i = 0; i < MAX_INPUTS; i++) {
@@ -572,6 +610,7 @@ export class Device {
     this.getSwitchableComponentDeltas(status, 'rgb', 'output', values)
     this.getSwitchableComponentDeltas(status, 'rgbw', 'output', values)
     this.getReadKeys(status, values)
+    this.getSmokeDeltas(status, values)
 
     if (values.length > 0) {
       this.debug('sending deltas %j', values)
