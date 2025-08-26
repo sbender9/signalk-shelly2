@@ -2,7 +2,7 @@
   "extends": "@tsconfig/node20/tsconfig.json",
   "compilerOptions": {
     "outDir": "${configDir}/dist",
-    "rootDir": "${configDir}/src  ",
+    "rootDir": "${configDir}/src",
     "allowJs": true,
     "typeRoots": ["./node_modules/@types"],
     "resolveJsonModule": true,
