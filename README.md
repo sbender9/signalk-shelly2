@@ -39,6 +39,10 @@ The plugin does not support specific Shelly devices, instead it supports the fol
 - **`Input`** - Digital inputs and sensors
 - **`Devicepower`** - Device power and battery status
 
+## Confirmed Device Support
+Please report any devices you've tested so that I can add to the list. Please open a issue.
+- Shelly 1 Gen4 (S4SW-001X16EU)
+
 ## Troubleshooting
 
 If you do not see any data you expect, please open an issue. Turn on debug logging for the plugin, and you'll see a message in the log `Initial device status retrieved successfully from...` followed by JSON data. Please include that data in your issue.
