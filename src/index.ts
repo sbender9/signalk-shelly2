@@ -193,6 +193,12 @@ export default function (app: any) {
               default: device.model || '',
               readOnly: true
             },
+            deviceGeneration: {
+              type: 'string',
+              title: 'Generation',
+              default: `${device.gen || ''}`,
+              readOnly: true
+            },
             deviceAddress: {
               type: 'string',
               title: 'Address',
