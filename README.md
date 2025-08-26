@@ -42,6 +42,7 @@ The plugin does not support specific Shelly devices, instead it supports the fol
 ## Confirmed Device Support
 Please report any devices you've tested so that I can add to the list. Please open a issue.
 - Shelly 1 Gen4 (S4SW-001X16EU)
+- Shelly 1 Gen2
 
 ## Troubleshooting
 
