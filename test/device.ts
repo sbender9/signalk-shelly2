@@ -1,5 +1,6 @@
 import { expect } from 'chai'
 import * as sinon from 'sinon'
+import { Device } from '../src/device'
 
 // Sample device status as provided
 const sampleDeviceStatus = {
@@ -85,7 +86,6 @@ describe('Device Class Unit Tests', () => {
       
       expect(device.id).to.equal('12345')
       expect(device.connected).to.be.false
-      expect(device.numSwitches).to.equal(0)
       expect(device.address).to.equal('192.168.1.100')
       expect(device.name).to.be.undefined
       expect(device.model).to.be.null
@@ -94,7 +94,7 @@ describe('Device Class Unit Tests', () => {
   })
 
   describe('Device Data Processing', () => {
-    let device: any
+    let device: Device
 
     beforeEach(() => {
       const { Device } = require('../dist/device')
@@ -106,17 +106,14 @@ describe('Device Class Unit Tests', () => {
       device.name = sampleDeviceInfo.name
       device.model = sampleDeviceInfo.model
       device.gen = sampleDeviceInfo.gen
-      device.numSwitches = 1
+      device.getCapabilities(sampleDeviceStatus)
     })
 
     it('should send deltas for device status', () => {
-      // Set sentMeta to true to skip metadata sending
-      device.sentMeta = true
-      
       device.sendDeltas(sampleDeviceStatus)
 
       expect(mockApp.handleMessage.called).to.be.true
-      const handleMessageCall = mockApp.handleMessage.getCall(0)
+      const handleMessageCall = mockApp.handleMessage.getCall(1)
       const message = handleMessageCall.args[1]
 
       expect(message).to.have.property('updates')
@@ -141,12 +138,9 @@ describe('Device Class Unit Tests', () => {
     })
 
     it('should convert temperature from Celsius to Kelvin', () => {
-      // Set sentMeta to true to skip metadata sending
-      device.sentMeta = true
-      
       device.sendDeltas(sampleDeviceStatus)
 
-      const handleMessageCall = mockApp.handleMessage.getCall(0)
+      const handleMessageCall = mockApp.handleMessage.getCall(1)
       const values = handleMessageCall.args[1].updates[0].values
 
       const tempValue = values.find((v: any) => v.path === 'electrical.switches.testDevice.temperature')
@@ -223,7 +217,7 @@ describe('Device Class Unit Tests', () => {
       expect(result).to.deep.equal({ state: 'PENDING' })
 
       setTimeout(() => {
-        expect(mockFunc.calledWith(device, true)).to.be.true
+        expect(mockFunc.calledWith(true)).to.be.true
         expect(mockCallback.calledWith({
           state: 'COMPLETED',
           statusCode: 200
@@ -280,7 +274,7 @@ describe('Device Class Unit Tests', () => {
 
     it('should generate correct device paths', () => {
       // Test with single switch - path should not include switch index
-      const switchPath = device.getSwitchPath(0)
+      const switchPath = device.getComponentPath('switch', 0, 'state')
       expect(switchPath).to.equal('electrical.switches.testDevice.state')
     })
 
@@ -295,11 +289,11 @@ describe('Device Class Unit Tests', () => {
     })
 
     it('should handle multiple switches correctly', () => {
-      device.numSwitches = 2
-      
-      const switch0Path = device.getSwitchPath(0)
-      const switch1Path = device.getSwitchPath(1)
-      
+      device.componentCounts['switch'] = 2
+
+      const switch0Path = device.getComponentPath('switch', 0, 'state')
+      const switch1Path = device.getComponentPath('switch', 1, 'state')
+
       // switch0 should use the switchPath from settings ('main')
       // switch1 should use the relay number (1) since no switch1 setting exists
       expect(switch0Path).to.equal('electrical.switches.testDevice.main.state')
@@ -322,13 +316,13 @@ describe('Device Class Unit Tests', () => {
           "temperature": tempObj
         }
       }
-      
+
+      testDevice.getCapabilities(testStatus)
+
       testDevice.connected = true
-      testDevice.numSwitches = 1
-      testDevice.sentMeta = true // Skip metadata sending
       testDevice.sendDeltas(testStatus)
       
-      const values = mockApp.handleMessage.getCall(0).args[1].updates[0].values
+      const values = mockApp.handleMessage.getCall(1).args[1].updates[0].values
       const tempValue = values.find((v: any) => v.path === 'electrical.switches.testDevice.temperature')
       expect(tempValue).to.exist
       expect(tempValue.value).to.equal(expectedKelvin)

@@ -4,7 +4,7 @@
   "description": "Signal K Plugin For Shelly Gen 2+ devices",
   "main": "dist/index.js",
   "scripts": {
-    "test": "mocha",
+    "test": "mocha --require ts-node/register",
     "format": "prettier-standard 'src/*.ts'",
     "ci-test": "npm run build && npm run test",
     "build": "tsc",

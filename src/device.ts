@@ -375,9 +375,9 @@ export class Device {
     return res
   }
 
-  private getCapabilities (status: any) {
+  getCapabilities (status: any) {
     supportedComponents.forEach(component => {
-      this.componentCounts[component] = 2
+      this.componentCounts[component] = 0
 
       for (let i = 0; i < 10; i++) {
         if (status[`${component}:${i}`]) {
@@ -522,7 +522,7 @@ export class Device {
     })
   }
 
-  private sendDeltas (status: any) {
+  sendDeltas (status: any) {
     let values: any = []
 
     if (this.deviceSettings?.enabled === false) {
@@ -861,14 +861,14 @@ export class Device {
     }
   }
 
-  private registerForPuts (status: any) {
+  registerForPuts (status: any) {
     this.registerComponentPuts(status, 'switch')
     this.registerComponentPuts(status, 'light')
     this.registerComponentPuts(status, 'rgb')
     this.registerComponentPuts(status, 'rgbw')
   }
 
-  private valueHandler (
+  valueHandler (
     context: string,
     path: string,
     value: any,
