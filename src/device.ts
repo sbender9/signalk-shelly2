@@ -1072,5 +1072,188 @@ const readKeys = [
     meta: {
       units: 'K'
     }
+  },
+  // EM (Energy Meter) component status fields
+  {
+    key: 'em',
+    path: 'a_current',
+    converter: (v: any) => v.a_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_voltage',
+    converter: (v: any) => v.a_voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_act_power',
+    converter: (v: any) => v.a_act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_aprt_power',
+    converter: (v: any) => v.a_aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_pf',
+    converter: (v: any) => v.a_pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'em',
+    path: 'a_freq',
+    converter: (v: any) => v.a_freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_current',
+    converter: (v: any) => v.b_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_voltage',
+    converter: (v: any) => v.b_voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_act_power',
+    converter: (v: any) => v.b_act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_aprt_power',
+    converter: (v: any) => v.b_aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_pf',
+    converter: (v: any) => v.b_pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'em',
+    path: 'b_freq',
+    converter: (v: any) => v.b_freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+
+  {
+    key: 'em',
+    path: 'c_current',
+    converter: (v: any) => v.c_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_voltage',
+    converter: (v: any) => v.c_voltage,
+    meta: {
+      units: 'V'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_act_power',
+    converter: (v: any) => v.c_act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_aprt_power',
+    converter: (v: any) => v.c_aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_pf',
+    converter: (v: any) => v.c_pf,
+    meta: {
+      units: 'ratio'
+    }
+  },
+  {
+    key: 'em',
+    path: 'c_freq',
+    converter: (v: any) => v.c_freq,
+    meta: {
+      units: 'Hz'
+    }
+  },
+  {
+    key: 'em',
+    path: 'n_current',
+    converter: (v: any) => v.n_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'total_current',
+    converter: (v: any) => v.total_current,
+    meta: {
+      units: 'A'
+    }
+  },
+  {
+    key: 'em',
+    path: 'total_act_power',
+    converter: (v: any) => v.total_act_power,
+    meta: {
+      units: 'W'
+    }
+  },
+  {
+    key: 'em',
+    path: 'total_aprt_power',
+    converter: (v: any) => v.total_aprt_power,
+    meta: {
+      units: 'VA'
+    }
+  },
+  {
+    key: 'em',
+    path: 'user_calibrated_phase',
+    converter: (v: any) => v.user_calibrated_phase
   }
 ]
