@@ -599,15 +599,15 @@ describe('Mock Devices Tests', () => {
         const values = deltaCall.args[1].updates[0].values
 
         // Should include switch state (look for 'output' not 'state')
-        const output = values.find((v: any) => 
-          v.path.includes('state') && typeof v.value === 'boolean'
+        const output = values.find(
+          (v: any) => v.path.includes('state') && typeof v.value === 'boolean'
         )
         expect(output).to.exist
         expect(output.value).to.be.true
 
         // Should include RGB values
-        const rgb = values.find((v: any) => 
-          v.path.includes('rgb') && Array.isArray(v.value)
+        const rgb = values.find(
+          (v: any) => v.path.includes('rgb') && Array.isArray(v.value)
         )
         expect(rgb).to.exist
         expect(rgb.value).to.deep.equal([255, 0, 0])
@@ -640,14 +640,14 @@ describe('Mock Devices Tests', () => {
         const values = deltaCall.args[1].updates[0].values
 
         // Should have RGB values for both RGBW channels
-        const rgbValues = values.filter((v: any) => 
-          v.path.includes('rgb') && Array.isArray(v.value)
+        const rgbValues = values.filter(
+          (v: any) => v.path.includes('rgb') && Array.isArray(v.value)
         )
         expect(rgbValues).to.have.length(2)
 
         // Should have white channel values
-        const whiteValues = values.filter((v: any) => 
-          v.path.includes('white') && typeof v.value === 'number'
+        const whiteValues = values.filter(
+          (v: any) => v.path.includes('white') && typeof v.value === 'number'
         )
         expect(whiteValues).to.have.length(2)
 
@@ -732,24 +732,29 @@ describe('Mock Devices Tests', () => {
         const values = deltaCall.args[1].updates[0].values
 
         // Should have state values for both light channels
-        const stateValues = values.filter((v: any) => 
-          v.path.includes('state') && typeof v.value === 'boolean'
+        const stateValues = values.filter(
+          (v: any) => v.path.includes('state') && typeof v.value === 'boolean'
         )
         expect(stateValues).to.have.length(2)
 
         // Check channel 0 (on)
-        const state0 = stateValues.find((v: any) => v.path.includes('shelly-light.0.'))
+        const state0 = stateValues.find((v: any) =>
+          v.path.includes('shelly-light.0.')
+        )
         expect(state0).to.exist
         expect(state0.value).to.be.true
 
         // Check channel 1 (off)
-        const state1 = stateValues.find((v: any) => v.path.includes('shelly-light.1.'))
+        const state1 = stateValues.find((v: any) =>
+          v.path.includes('shelly-light.1.')
+        )
         expect(state1).to.exist
         expect(state1.value).to.be.false
 
         // Should have brightness values (look for the brightness key specifically)
-        const brightnessValues = values.filter((v: any) =>
-          v.path.includes('brightness') && typeof v.value === 'number'
+        const brightnessValues = values.filter(
+          (v: any) =>
+            v.path.includes('brightness') && typeof v.value === 'number'
         )
         expect(brightnessValues).to.have.length(2)
 

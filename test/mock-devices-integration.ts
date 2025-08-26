@@ -94,12 +94,12 @@ describe('Mock Device Integration Tests', () => {
       expect(mockApp.handleMessage.called).to.be.true
 
       const calls = mockApp.handleMessage.getCalls()
-      
+
       // Find the call with values (not meta)
       const valuesCall = calls.find(
         (call) => call.args[1].updates && call.args[1].updates[0].values
       )
-      
+
       expect(valuesCall).to.exist
       if (valuesCall) {
         expect(valuesCall.args).to.have.length(2)
@@ -132,7 +132,7 @@ describe('Mock Device Integration Tests', () => {
 
       mockApp.handleMessage.resetHistory()
 
-      // Initialize capabilities and force meta to be sent by calling sendDeltas 
+      // Initialize capabilities and force meta to be sent by calling sendDeltas
       powerMeter.device.getCapabilities(powerMeter.status)
       powerMeter.device.sendDeltas(powerMeter.status)
 
