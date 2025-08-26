@@ -315,7 +315,7 @@ describe('Device Class Unit Tests', () => {
     beforeEach(() => {
       const { Device } = require('../dist/device')
       device = new Device(mockApp, mockPlugin, deviceSettings, '192.168.1.100')
-      device.numSwitches = 1
+      device.componentCounts = { switch: 1 }
       device.name = 'Test Device'
     })
 
@@ -330,6 +330,7 @@ describe('Device Class Unit Tests', () => {
       const { Device } = require('../dist/device')
       device = new Device(mockApp, mockPlugin, deviceSettings, '192.168.1.100')
       device.name = 'Test Device'
+      device.componentCounts = { switch: 1 }
 
       const devicePath = device.getDevicePath()
       expect(devicePath).to.equal('electrical.switches.testDevice')
