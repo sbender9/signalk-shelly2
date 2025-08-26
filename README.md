@@ -16,28 +16,28 @@ This plugin supports any Gen 2 or better Shelly device, automatically discoverin
 
 ## Supported Shelly Component Types
 
-The plugin supports the following Shelly component types:
+The plugin does not support specific Shelly devices, instead it supports the following Shelly component types:
 
 ### Electrical Components
-- **`switch`** - Basic on/off switches and relays → `electrical.switches`
-- **`light`** - Light controllers → `electrical.switches`
-- **`rgb`** - RGB color lights → `electrical.switches`
-- **`rgbw`** - RGBW color lights with white channel → `electrical.switches`
+- **`Switch`** - Basic on/off switches and relays → `electrical.switches`
+- **`Light`** - Light controllers → `electrical.switches`
+- **`RGB`** - RGB color lights → `electrical.switches`
+- **`RGBW`** - RGBW color lights with white channel → `electrical.switches`
 
 ### Energy Monitoring
-- **`em`** - Energy meter → `electrical.energymeter`
-- **`em1`** - Single-phase energy meter → `electrical.energymeter`
-- **`pm1`** - Power meter → `electrical.powermeter`
+- **`EM`** - Energy meter → `electrical.energymeter`
+- **`EM1`** - Single-phase energy meter → `electrical.energymeter`
+- **`PM1`** - Power meter → `electrical.powermeter`
 - **`voltmeter`** - Voltage measurement → `electrical.voltmeter`
 
 ### Environmental Sensors
-- **`temperature`** - Temperature sensors → `environment`
-- **`humidity`** - Humidity sensors → `environment`
-- **`smoke`** - Smoke detectors → `environment.smoke`
+- **`Temperature`** - Temperature sensors → `environment`
+- **`Humidity`** - Humidity sensors → `environment`
+- **`Smoke`** - Smoke detectors → `environment.smoke`
 
 ### Input/Output
-- **`input`** - Digital inputs and sensors
-- **`devicepower`** - Device power and battery status
+- **`Input`** - Digital inputs and sensors
+- **`Devicepower`** - Device power and battery status
 
 ## Troubleshooting
 
