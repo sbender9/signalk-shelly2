@@ -23,12 +23,18 @@ type PendingRequest = {
 }
 
 const MAX_INPUTS = 10
-export const supportedComponents = ['switch', 'light', 'rgb', 'rgbw']
+export const supportedComponents = ['switch', 'light', 'rgb', 'rgbw', 'em', 'em1', 'pm1', 'temperature', 'humidity', 'voltmeter', 'input']
 const componentNames: { [key: string]: any } = {
   switch: 'Switch',
   light: 'Light',
   rgb: 'RGB',
-  rgbw: 'RGBW'
+  rgbw: 'RGBW',
+  em: 'EM',
+  em1: 'EM1',
+  pm1: 'PM1',
+  temperature: 'Temperature',
+  humidity: 'Humidity',
+  voltmeter: 'Voltmeter'
 }
 
 export class Device {
@@ -513,7 +519,7 @@ export class Device {
           const converted = converter ? converter(val) : val
           if (converted !== undefined) {
             values.push({
-              path: this.getComponentPath('input', i, `${key}.${i}${path}`),
+              path: this.getComponentPath(p.key, i, `${key}.${i}${path}`),
               value: converted
             })
           }
