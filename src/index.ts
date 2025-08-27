@@ -16,11 +16,12 @@
 import { ServerAPI, Plugin } from '@signalk/server-api'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const mdns = require('mdns-js')
-import { Device, supportedComponents } from './device'
+import { Device } from './device'
+import { getSupportedComponents } from './components'
 
 const SERVICE_NAME = 'shelly'
 const deviceKey = (device: any) => device.id
-const createMockDevices = true
+const createMockDevices = false
 
 export default function (app: ServerAPI) {
   let props: any
@@ -232,8 +233,8 @@ export default function (app: ServerAPI) {
           }
         })
 
-        supportedComponents.forEach((component) => {
-          const count = device.componentCounts[component] || 0
+        getSupportedComponents().forEach((component) => {
+          const count = device.components[component]?.length || 0
           if (count > 1) {
             for (let i = 0; i < count; i++) {
               const key = `${component}${i}`
