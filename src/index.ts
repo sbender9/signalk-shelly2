@@ -221,15 +221,14 @@ export default function (app: ServerAPI) {
           }
         })
 
-        if ( device.authFailed === false ) {
+        if (device.authFailed === false) {
           props.properties = {
             ...props.properties,
             devicePath: {
               type: 'string',
               title: 'Device Path',
               default: device.getDevicePath(),
-              description:
-                `Used to generate the path name, default`
+              description: `Used to generate the path name, default`
             },
             displayName: {
               type: 'string',
@@ -247,7 +246,7 @@ export default function (app: ServerAPI) {
               'The password for the device, leave empty if no password is set'
           }
         }
-        
+
         getSupportedComponents().forEach((component) => {
           const count = device.components[component]?.length || 0
           if (count > 1) {

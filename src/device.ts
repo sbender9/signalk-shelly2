@@ -165,7 +165,7 @@ export class Device {
 
     const username = 'admin'
     const password = this.deviceSettings!.password
-    const cnonce =  Math.round(Math.random() * 1000000)
+    const cnonce = Math.round(Math.random() * 1000000)
     const ha1 = hash([username, errorMessage.realm, password])
     const ha2 = hash(['dummy_method', 'dummy_uri'])
     const response = [
