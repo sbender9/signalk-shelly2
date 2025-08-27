@@ -15,8 +15,12 @@
 
 import camelCase from 'camelcase'
 import WebSocket from 'ws'
-import { ServerAPI, Plugin, ActionResult, Path, PathValue, Meta } from '@signalk/server-api'
-import { Component, getSupportedComponents, createComponent } from './components'
+import { ServerAPI, Plugin, Path, PathValue } from '@signalk/server-api'
+import {
+  Component,
+  getSupportedComponents,
+  createComponent
+} from './components'
 
 type PendingRequest = {
   resolve: (value: any) => void
@@ -138,7 +142,7 @@ export class Device {
         )
         this.debug(JSON.stringify(result, null, 2))
         this.getCapabilities(result)
-        this.registerForPuts(result)
+        this.registerForPuts()
         this.sendDeltas(result)
         this.connected = true
         resolve(this)
@@ -379,7 +383,8 @@ export class Device {
 
   getDevicePath(key?: string): Path {
     const component = this.getMainComponent()
-    const deviceRoot = component != null ? component.skPath : 'electrical.unknown'
+    const deviceRoot =
+      component != null ? component.skPath : 'electrical.unknown'
     let name = this.deviceSettings?.devicePath
     if (name !== undefined && name.indexOf('.') === -1) {
       name = `${deviceRoot}.${name}`
@@ -403,7 +408,7 @@ export class Device {
     }
 
     if (!this.sentMeta) {
-      this.sendMeta(status)
+      this.sendMeta()
       this.sentMeta = true
     }
 
@@ -427,7 +432,10 @@ export class Device {
 
     Object.values(this.components).forEach((components) => {
       components.forEach((component) => {
-        const componentProps = this.getComponentProps(component.componentName, component.componentId)
+        const componentProps = this.getComponentProps(
+          component.componentName,
+          component.componentId
+        )
 
         if (componentProps?.enabled === false) {
           return
@@ -449,7 +457,7 @@ export class Device {
     }
   }
 
-  sendMeta(status: any) {
+  sendMeta() {
     let meta: any = []
 
     const devicePath = this.getDevicePath()
@@ -469,7 +477,10 @@ export class Device {
 
     Object.values(this.components).forEach((components) => {
       components.forEach((component) => {
-        const componentProps = this.getComponentProps(component.componentName, component.componentId)
+        const componentProps = this.getComponentProps(
+          component.componentName,
+          component.componentId
+        )
 
         if (componentProps?.enabled === false) {
           return
@@ -491,10 +502,13 @@ export class Device {
     }
   }
 
-  registerForPuts(status: any) {
+  registerForPuts() {
     Object.values(this.components).forEach((components) => {
       components.forEach((component) => {
-        const componentProps = this.getComponentProps(component.componentName, component.componentId)
+        const componentProps = this.getComponentProps(
+          component.componentName,
+          component.componentId
+        )
 
         if (componentProps?.enabled === false) {
           return
@@ -504,26 +518,4 @@ export class Device {
       })
     })
   }
-}
-
-type DeepGet<T, P extends string> = P extends `${infer K}.${infer Rest}`
-  ? K extends keyof T
-    ? DeepGet<T[K], Rest>
-    : never
-  : P extends keyof T
-    ? T[P]
-    : never
-
-function deepGet<T, P extends string>(obj: T, path: P): DeepGet<T, P> {
-  const parts = path.split('.') as Array<keyof T>
-  let current: any = obj
-
-  for (const part of parts) {
-    if (current === null || typeof current !== 'object' || !(part in current)) {
-      // Handle cases where a part of the path is missing or not an object
-      return undefined as DeepGet<T, P> // Or throw an error
-    }
-    current = current[part]
-  }
-  return current as DeepGet<T, P>
 }

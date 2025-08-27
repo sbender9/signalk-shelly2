@@ -14,7 +14,7 @@
  */
 
 import { Component, ComponentPath } from './Component'
-import { Device, DeviceSettings } from '../device'
+import { Device } from '../device'
 import { Path, PathValue } from '@signalk/server-api'
 
 export class Smoke extends Component {
@@ -22,10 +22,11 @@ export class Smoke extends Component {
     super(device, componentId, 'smoke', 'Smoke', 'environment.smoke')
   }
 
-  getDeltaValues(
-    status: any
-  ): PathValue[] {
-    const componentProps = this.device.getComponentProps(this.componentName, this.componentId)
+  getDeltaValues(status: any): PathValue[] {
+    const componentProps = this.device.getComponentProps(
+      this.componentName,
+      this.componentId
+    )
     const componentStatus = status[`${this.componentName}:${this.componentId}`]
 
     if (componentStatus !== undefined) {

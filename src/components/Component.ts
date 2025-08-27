@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import { Device, DeviceSettings } from '../device'
+import { Device } from '../device'
 import {
   ServerAPI,
   ActionResult,
@@ -56,16 +56,12 @@ export abstract class Component {
 
   abstract getPaths(): ComponentPath[]
 
-  registerPuts(
-    app: ServerAPI
-  ) {
+  registerPuts(app: ServerAPI) {
     this.getPaths().forEach((p: ComponentPath) => {
       if (p.putHandler !== undefined) {
         app.registerPutHandler(
           'vessels.self',
-          this.getComponentPath(
-            p.path || p.key
-          ),
+          this.getComponentPath(p.path || p.key),
           (
             context: string,
             path: string,
@@ -105,9 +101,7 @@ export abstract class Component {
         const converter = p.converter
         if (val !== undefined) {
           values.push({
-            path: this.getComponentPath(
-              p.path || p.key
-            ),
+            path: this.getComponentPath(p.path || p.key),
             value: converter ? converter(val) : val
           })
         }
@@ -119,18 +113,20 @@ export abstract class Component {
   getMeta(): Meta[] {
     const meta: Meta[] = []
 
-    const componentProps = this.device.getComponentProps(this.componentName, this.componentId)
+    const componentProps = this.device.getComponentProps(
+      this.componentName,
+      this.componentId
+    )
 
     this.getPaths().forEach((path) => {
       const metaValue = {
         ...(path.meta || {}),
-        displayName: componentProps?.displayName || this.device.deviceSettings?.displayName
+        displayName:
+          componentProps?.displayName || this.device.deviceSettings?.displayName
       }
       if (Object.keys(metaValue).length > 0) {
         meta.push({
-          path: this.getComponentPath(
-            path.path || path.key
-          ),
+          path: this.getComponentPath(path.path || path.key),
           value: metaValue
         })
       }
@@ -139,20 +135,20 @@ export abstract class Component {
     return meta
   }
 
-  async setValue(
-    getKey: string,
-    setKey: string,
-    value: any
-  ) {
+  async setValue(getKey: string, setKey: string, value: any) {
     await this.device.send(`${this.apiName}.Set`, {
       id: this.componentId,
       [setKey]: value
     })
     const status = await this.getStatus()
     if (status[getKey] !== value) {
-      throw new Error(`Failed to set ${this.componentName} ${this.componentId} to ${value}`)
+      throw new Error(
+        `Failed to set ${this.componentName} ${this.componentId} to ${value}`
+      )
     }
-    this.device.sendDeltas({ [`${this.componentName}:${this.componentId}`]: status })
+    this.device.sendDeltas({
+      [`${this.componentName}:${this.componentId}`]: status
+    })
   }
 
   async getStatus(): Promise<any> {
@@ -162,10 +158,11 @@ export abstract class Component {
     return res
   }
 
-  getComponentPath(
-    key: string | undefined
-  ): Path {
-    const componentProps = this.device.getComponentProps(this.componentName, this.componentId)
+  getComponentPath(key: string | undefined): Path {
+    const componentProps = this.device.getComponentProps(
+      this.componentName,
+      this.componentId
+    )
 
     let path = this.device.getDevicePath() as string
     const count = this.device.components[this.componentName].length
@@ -174,7 +171,8 @@ export abstract class Component {
         path = path + `.${this.componentName}`
       }
       path =
-        path + `.${componentProps?.path || componentProps?.switchPath || this.componentId}`
+        path +
+        `.${componentProps?.path || componentProps?.switchPath || this.componentId}`
     } else if (count === 1 && this.flatten === false) {
       path = path + `.${this.componentName}`
     }

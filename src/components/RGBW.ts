@@ -27,11 +27,7 @@ export class RGBW extends RGB {
       {
         key: 'white',
         putHandler: (device: Device, id: number, value: any): Promise<void> => {
-          return this.setValue(
-            'white',
-            'white',
-            Math.round(value * 100)
-          )
+          return this.setValue('white', 'white', Math.round(value * 100))
         }
       }
     ]

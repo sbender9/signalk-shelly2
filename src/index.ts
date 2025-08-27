@@ -113,7 +113,7 @@ export default function (app: ServerAPI) {
         mockedDevices.forEach(({ device, status }) => {
           devices[device.id!] = device
           device.getCapabilities(status)
-          device.registerForPuts(status)
+          device.registerForPuts()
           device.sendDeltas(status)
         })
       }

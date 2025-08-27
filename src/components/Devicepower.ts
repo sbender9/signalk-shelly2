@@ -18,7 +18,13 @@ import { Device } from '../device'
 
 export class Devicepower extends Component {
   constructor(device: Device, componentId: number) {
-    super(device, componentId, 'devicepower', 'Devicepower', 'electrical.devicepower')
+    super(
+      device,
+      componentId,
+      'devicepower',
+      'Devicepower',
+      'electrical.devicepower'
+    )
   }
 
   getPaths(): ComponentPath[] {

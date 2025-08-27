@@ -43,7 +43,8 @@ export class RGB extends Light {
       this.device.deviceSettings.presets.length > 0
     ) {
       let preset = null
-      const componentStatus = status[`${this.componentName}:${this.componentId}`]
+      const componentStatus =
+        status[`${this.componentName}:${this.componentId}`]
       if (componentStatus) {
         const rgb: number[] = componentStatus.rgb
         if (rgb !== undefined) {
@@ -69,29 +70,34 @@ export class RGB extends Light {
 
   getMeta(): Meta[] {
     const meta: Meta[] = super.getMeta()
-    const componentProps = this.device.getComponentProps(this.componentName, this.componentId)
+    const componentProps = this.device.getComponentProps(
+      this.componentName,
+      this.componentId
+    )
     if (
       this.device.deviceSettings?.presets &&
       this.device.deviceSettings.presets.length > 0
-      ) {
-        meta.push({
-          path: this.getComponentPath('preset'),
-          value: {
-            displayName: componentProps?.displayName,
-            possibleValues: [
-              ...this.device.deviceSettings.presets.map((preset: any) => {
-                return {
-                  title: preset.name,
-                  value: preset.name
-                }
-              })
-            ],
-            enum: [
-              ...this.device.deviceSettings.presets.map((preset: any) => preset.name)
-            ]
-          } as any
-        })
-      }
+    ) {
+      meta.push({
+        path: this.getComponentPath('preset'),
+        value: {
+          displayName: componentProps?.displayName,
+          possibleValues: [
+            ...this.device.deviceSettings.presets.map((preset: any) => {
+              return {
+                title: preset.name,
+                value: preset.name
+              }
+            })
+          ],
+          enum: [
+            ...this.device.deviceSettings.presets.map(
+              (preset: any) => preset.name
+            )
+          ]
+        } as any
+      })
+    }
     return meta
   }
 
@@ -100,11 +106,7 @@ export class RGB extends Light {
       {
         key: 'rgb',
         putHandler: (device: Device, id: number, value: any): Promise<void> => {
-          return this.setValue(
-            'rgb',
-            'rgb',
-            value
-          )
+          return this.setValue('rgb', 'rgb', value)
         }
       }
     ]
@@ -141,24 +143,23 @@ export class RGB extends Light {
           if (preset.white !== undefined) {
             rgb.push(preset.white)
           }
-          this.device.send(`${this.apiName}.Set`, {
-            id: this.componentId,
-            rgb
-          })
+          this.device
+            .send(`${this.apiName}.Set`, {
+              id: this.componentId,
+              rgb
+            })
             .then(() => {
-              if (
-                preset.bright === undefined ||
-                preset.bright === 0
-              ) {
+              if (preset.bright === undefined || preset.bright === 0) {
                 cb({
                   state: 'COMPLETED',
                   statusCode: 200
                 })
               } else {
-                this.device.send(`${this.apiName}.Set`, {
-                  id: this.componentId,
-                  brightness: preset.bright
-                })
+                this.device
+                  .send(`${this.apiName}.Set`, {
+                    id: this.componentId,
+                    brightness: preset.bright
+                  })
                   .then(() => {
                     cb({
                       state: 'COMPLETED',
@@ -181,8 +182,8 @@ export class RGB extends Light {
                 message: err.message
               })
             })
-         return { state: 'PENDING' }
-        },
+          return { state: 'PENDING' }
+        }
       )
     }
   }
