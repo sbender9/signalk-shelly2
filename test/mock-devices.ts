@@ -304,7 +304,7 @@ describe('Mock Devices Tests', () => {
 
     it('should have correct RGB device status', () => {
       expect(rgbDevice.status).to.deep.equal({
-        'rgb:0': { output: true, rgb: [255, 0, 0], brightness: 50, white: 255 }
+        'rgb:0': { output: true, rgb: [255, 0, 0], brightness: 50 }
       })
     })
 
@@ -754,7 +754,7 @@ describe('Mock Devices Tests', () => {
         // Should have brightness values (look for the brightness key specifically)
         const brightnessValues = values.filter(
           (v: any) =>
-            v.path.includes('brightness') && typeof v.value === 'number'
+            v.path.includes('dimmingLevel') && typeof v.value === 'number'
         )
         expect(brightnessValues).to.have.length(2)
 

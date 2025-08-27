@@ -13,15 +13,16 @@
  * limitations under the License.
  */
 
+import { ServerAPI, Plugin } from '@signalk/server-api'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const mdns = require('mdns-js')
 import { Device, supportedComponents } from './device'
 
 const SERVICE_NAME = 'shelly'
 const deviceKey = (device: any) => device.id
-const createMockDevices = false
+const createMockDevices = true
 
-export default function (app: any) {
+export default function (app: ServerAPI) {
   let props: any
   let onStop: any = []
   let devices: { [key: string]: Device } = {}
@@ -107,7 +108,7 @@ export default function (app: any) {
       }
 
       if (createMockDevices) {
-        const mockedDevices = mockDevices(app, plugin)
+        const mockedDevices = mockDevices(app, plugin, getDeviceProps)
         mockedDevices.forEach(({ device, status }) => {
           devices[device.id!] = device
           device.getCapabilities(status)
@@ -360,7 +361,11 @@ export default function (app: any) {
   return plugin
 }
 
-export const mockDevices = (app: any, plugin: any) => {
+export const mockDevices = (
+  app: ServerAPI,
+  plugin: any,
+  getDeviceProps?: (id: string) => any
+) => {
   return [
     {
       device: new Device(
@@ -500,14 +505,14 @@ export const mockDevices = (app: any, plugin: any) => {
         '192.168.99.100'
       ),
       status: {
-        'rgb:0': { output: true, rgb: [255, 0, 0], brightness: 50, white: 255 }
+        'rgb:0': { output: true, rgb: [255, 0, 0], brightness: 50 }
       }
     },
     {
       device: new Device(
         app,
         plugin,
-        undefined,
+        getDeviceProps?.(`shelly-rgbw`),
         'shelly-rgbw',
         '192.168.99.100'
       ),
@@ -549,14 +554,4 @@ export const mockDevices = (app: any, plugin: any) => {
       }
     }
   ]
-}
-
-interface Plugin {
-  start: (app: any) => void
-  stop: () => void
-  id: string
-  name: string
-  description: string
-  schema: any
-  uiSchema: any
 }
