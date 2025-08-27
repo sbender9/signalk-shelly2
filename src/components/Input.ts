@@ -18,7 +18,7 @@ import { Component, ComponentPath } from './Component'
 
 export class Input extends Component {
   constructor(device: Device, componentId: number) {
-    super(device, componentId, 'input', 'Input', 'electrical.inputs', true)
+    super(device, componentId, 'input', 'Input', 'electrical.inputs', false)
   }
 
   getPaths(): ComponentPath[] {

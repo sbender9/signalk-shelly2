@@ -21,8 +21,10 @@ import {
   getSupportedComponents,
   createComponent
 } from './components'
+import crypto from 'crypto'
 
 type PendingRequest = {
+  request: any
   resolve: (value: any) => void
   reject: (reason?: any) => void
   timeout: NodeJS.Timeout
@@ -44,11 +46,12 @@ export class Device {
   model: string | null = null
   gen: number | null = null
   components: { [key: string]: Component[] } = {}
+  deviceSettings: DeviceSettings | undefined
+  authFailed: boolean = true
 
   private ws: WebSocket | null = null
   private next_id: number = 1
   private pendingRequests: { [key: number]: PendingRequest } = {}
-  deviceSettings: DeviceSettings | undefined
   private sentMeta: boolean = false
   private app: ServerAPI
   private plugin: Plugin
@@ -58,6 +61,7 @@ export class Device {
   private shouldReconnect: boolean = true
   private isReconnecting: boolean = false
   private sentStaticDeltas: boolean = false
+  private authMessage: any = undefined
 
   constructor(
     app: ServerAPI,
@@ -136,21 +140,60 @@ export class Device {
         )
         this.debug(JSON.stringify(deviceInfo, null, 2))
 
-        const result = await this.send('Shelly.GetStatus')
-        this.debug(
-          `Initial device status retrieved successfully from ${this.id}`
-        )
-        this.debug(JSON.stringify(result, null, 2))
-        this.getCapabilities(result)
-        this.registerForPuts()
-        this.sendDeltas(result)
+        await this.setupDevice()
+        this.authFailed = false
         this.connected = true
         resolve(this)
-      } catch (error) {
-        this.app.error(`Failed to connect to device ${this.address}: ${error}`)
-        reject(error)
+      } catch (error: any) {
+        if (error.code === 401 && this.deviceSettings?.password) {
+          this.setupAuthMessage(JSON.parse(error.message))
+          this.attemptReconnection()
+        } else {
+          this.app.error(
+            `Failed to connect to device ${this.address}: ${error}`
+          )
+          reject(error)
+        }
       }
     })
+  }
+
+  private setupAuthMessage(errorMessage: any) {
+    const hash = (parts: any[]) => {
+      return crypto.createHash('sha256').update(parts.join(':')).digest('hex')
+    }
+
+    const username = 'admin'
+    const password = this.deviceSettings!.password
+    const cnonce =  Math.round(Math.random() * 1000000)
+    const ha1 = hash([username, errorMessage.realm, password])
+    const ha2 = hash(['dummy_method', 'dummy_uri'])
+    const response = [
+      ha1,
+      errorMessage.nonce,
+      errorMessage.nc,
+      cnonce,
+      'auth',
+      ha2
+    ]
+
+    this.authMessage = {
+      realm: errorMessage.realm,
+      username,
+      nonce: errorMessage.nonce,
+      cnonce,
+      response: hash(response),
+      algorithm: 'SHA-256'
+    }
+  }
+
+  private async setupDevice() {
+    const result = await this.send('Shelly.GetStatus')
+    this.debug(`Initial device status retrieved successfully from ${this.id}`)
+    this.debug(JSON.stringify(result, null, 2))
+    this.getCapabilities(result)
+    this.registerForPuts()
+    this.sendDeltas(result)
   }
 
   private setupWebSocketHandlers() {
@@ -238,23 +281,30 @@ export class Device {
         this.debug(`Reconnecting to device ${this.id || this.address}...`)
         this.ws = await this.createWebSocketConnection()
         this.setupWebSocketHandlers()
-
+        await this.setupDevice()
+        this.authFailed = false
         this.connected = true
         this.reconnectAttempts = 0
         this.isReconnecting = false
         this.debug(
           `Successfully reconnected to device ${this.id || this.address}`
         )
-      } catch (error) {
-        this.debug(
-          `Reconnection attempt ${
-            this.reconnectAttempts
-          } failed for device ${this.id || this.address}: ${error}`
-        )
-        this.isReconnecting = false
+      } catch (error: any) {
+        if (error.code === 401) {
+          this.authFailed = true
+          this.app.error(`Failed to authenticate with device ${this.address}`)
+          return
+        } else {
+          this.debug(
+            `Reconnection attempt ${
+              this.reconnectAttempts
+            } failed for device ${this.id || this.address}: ${error}`
+          )
+          this.isReconnecting = false
 
-        // Schedule next reconnection attempt
-        this.attemptReconnection()
+          // Schedule next reconnection attempt
+          this.attemptReconnection()
+        }
       }
     }, delay)
   }
@@ -324,7 +374,8 @@ export class Device {
       src: 'signalk-shelly2',
       id,
       method,
-      params
+      params,
+      auth: this.authMessage
     })
 
     try {
@@ -340,6 +391,7 @@ export class Device {
       }, 5000)
 
       this.pendingRequests[id] = {
+        request: message,
         resolve,
         reject,
         timeout
