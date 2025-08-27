@@ -217,21 +217,35 @@ export default function (app: ServerAPI) {
               type: 'boolean',
               title: 'Enabled',
               default: true
-            },
+            }
+          }
+        })
+
+        if (device.authFailed === false) {
+          props.properties = {
+            ...props.properties,
             devicePath: {
               type: 'string',
               title: 'Device Path',
               default: device.getDevicePath(),
-              description:
-                'Used to generate the path name, ie. electrical.switches.${devicePath}'
+              description: `Used to generate the path name, default`
             },
             displayName: {
               type: 'string',
               title: 'Display Name (meta)',
-              default: device.name
+              default: device.name || ''
             }
           }
-        })
+        }
+        props.properties = {
+          ...props.properties,
+          password: {
+            type: 'string',
+            title: 'Password',
+            description:
+              'The password for the device, leave empty if no password is set'
+          }
+        }
 
         getSupportedComponents().forEach((component) => {
           const count = device.components[component]?.length || 0
@@ -315,27 +329,6 @@ export default function (app: ServerAPI) {
           }
         })
       })
-
-      /*
-      schema.properties.nextGenPassswords = {
-        title: 'Next Gen Device Passwords',
-        type: 'array',
-        items: {
-          type: 'object',
-          required: ['id', 'password'],
-          properties: {
-            id: {
-              type: 'string',
-              title: 'Device Id'
-            },
-            password: {
-              type: 'string',
-              title: 'Password'
-            }
-          }
-        }
-      }
-        */
 
       return schema
     },
