@@ -15,6 +15,7 @@
 
 import WebSocket from 'ws'
 import camelCase from 'camelcase'
+import { ServerAPI, Plugin, ActionResult } from '@signalk/server-api'
 
 type PendingRequest = {
   resolve: (value: any) => void
@@ -37,7 +38,7 @@ export const supportedComponents = [
   'smoke',
   'devicepower'
 ]
-const componentPaths: { [key: string]: any } = {
+const componentRootPaths: { [key: string]: any } = {
   switch: 'electrical.switches',
   light: 'electrical.switches',
   rgb: 'electrical.switches',
@@ -79,8 +80,8 @@ export class Device {
   private pendingRequests: { [key: number]: PendingRequest } = {}
   private deviceSettings: any | undefined
   private sentMeta: boolean = false
-  private app: any
-  private plugin: any
+  private app: ServerAPI
+  private plugin: Plugin
   private reconnectAttempts: number = 0
   private maxReconnectAttempts: number = -1
   private reconnectTimeout: NodeJS.Timeout | null = null
@@ -89,8 +90,8 @@ export class Device {
   private sentStaticDeltas: boolean = false
 
   constructor(
-    app: any,
-    plugin: any,
+    app: ServerAPI,
+    plugin: Plugin,
     deviceSettings: any,
     id: string,
     address: string,
@@ -110,8 +111,8 @@ export class Device {
     this.shouldReconnect = deviceSettings?.enableReconnection !== false // Default to true unless explicitly disabled
   }
 
-  private debug(...args: any[]) {
-    this.app.debug(...args)
+  private debug(msg: string, ...args: any[]) {
+    this.app.debug(msg, ...args)
   }
 
   private createWebSocketConnection(): Promise<WebSocket> {
@@ -448,7 +449,7 @@ export class Device {
   getDevicePath(key?: string) {
     const component = this.getMainComponent()
     const deviceRoot = component
-      ? componentPaths[component]
+      ? componentRootPaths[component]
       : 'electrical.unknown'
     let name = this.deviceSettings?.devicePath
     if (name !== undefined && name.indexOf('.') === -1) {
@@ -470,7 +471,7 @@ export class Device {
     id: number,
     key: string | undefined,
     flatten: boolean = true
-  ) {
+  ): string {
     const componentProps = this.getComponentProps(component, id)
 
     let path = this.getDevicePath()
@@ -528,14 +529,14 @@ export class Device {
               }
               values.push({
                 path: this.getComponentPath(component, i, 'preset'),
-                value: preset
+                value: preset ? preset.name : 'Unknown'
               })
             }
           }
 
-          const readPaths = componentReadPaths[component]
+          const readPaths = componentPaths[component]
           if (readPaths) {
-            readPaths.paths.forEach((p: ReadPath) => {
+            readPaths.paths.forEach((p: ComponentPath) => {
               const val = deepGet(componentStatus, p.key)
               const converter = p.converter
               if (val !== undefined) {
@@ -670,9 +671,9 @@ export class Device {
         })
       }
 
-      const readPaths = componentReadPaths[component]
+      const readPaths = componentPaths[component]
       if (readPaths) {
-        readPaths.paths.forEach((p: ReadPath) => {
+        readPaths.paths.forEach((p: ComponentPath) => {
           const val = deepGet(componentStatus, p.key)
           if (val !== undefined) {
             const metaValue = {
@@ -745,97 +746,61 @@ export class Device {
           continue
         }
 
-        const componentStatus = status[`${component}:${i}`]
-
-        if (componentStatus.output !== undefined) {
-          const path = this.getComponentPath(component, i, 'state')
-
-          this.app.registerPutHandler(
-            'vessels.self',
-            path,
-            (context: string, path: string, value: any, cb: any) => {
-              return this.valueHandler(
-                context,
-                path,
-                value,
-                (value: any) => {
-                  return this.setComponentValue(
-                    component,
-                    i,
-                    'output',
-                    'on',
-                    value === 1 ||
-                      value === 'on' ||
-                      value === 'true' ||
-                      value === true
-                  )
-                },
-                cb
+        const readPaths = componentPaths[component]
+        if (readPaths) {
+          readPaths.paths.forEach((p: ComponentPath) => {
+            if (p.putHandler !== undefined) {
+              this.app.registerPutHandler(
+                'vessels.self',
+                this.getComponentPath(
+                  component,
+                  i,
+                  p.path || p.key,
+                  readPaths.flatten !== undefined ? readPaths.flatten : true
+                ),
+                (
+                  context: string,
+                  path: string,
+                  value: any,
+                  cb: (result: ActionResult) => void
+                ): ActionResult => {
+                  p.putHandler!(this, component, i, value)
+                    .then(() => {
+                      cb({
+                        state: 'COMPLETED',
+                        statusCode: 200
+                      })
+                    })
+                    .catch((err: any) => {
+                      this.app.error(err.message)
+                      this.app.setPluginError(err.message)
+                      cb({
+                        state: 'COMPLETED',
+                        statusCode: 400,
+                        message: err.message
+                      })
+                    })
+                  return { state: 'PENDING' }
+                }
               )
             }
-          )
+          })
         }
 
-        if (componentStatus?.brightness !== undefined) {
-          this.app.registerPutHandler(
-            'vessels.self',
-            this.getComponentPath(component, i, 'dimmingLevel'),
-            (context: string, path: string, value: any, cb: any) => {
-              return this.valueHandler(
-                context,
-                path,
-                value,
-                (value: any) => {
-                  return this.setComponentValue(
-                    component,
-                    i,
-                    'brightness',
-                    'brightness',
-                    Math.round(value * 100)
-                  )
-                },
-                cb
-              )
-            }
-          )
-        }
-
-        if (componentStatus?.rgb !== undefined) {
-          this.app.registerPutHandler(
-            'vessels.self',
-            this.getComponentPath(component, i, 'rgb'),
-            (context: string, path: string, value: any, cb: any) => {
-              return this.valueHandler(
-                context,
-                path,
-                value,
-                (value: any) => {
-                  return this.setComponentValue(
-                    component,
-                    i,
-                    'rgb',
-                    'rgb',
-                    value
-                  )
-                },
-                cb
-              )
-            }
-          )
-
+        if (component === 'rgb' || component === 'rgbw') {
           if (
             this.deviceSettings?.presets &&
             this.deviceSettings.presets.length > 0
           ) {
-            this.app.registerPutHandler(
+            ;(this.app as any).registerPutHandler(
               'vessels.self',
-              this.getComponentPath(component, i, 'rgb'),
+              this.getComponentPath(component, i, 'preset'),
               (context: string, path: string, value: any, cb: any) => {
                 return this.valueHandler(
                   context,
                   path,
                   value,
-                  (value: any) => {
+                  (device: Device, value: any) => {
                     return new Promise((resolve, reject) => {
                       const preset = this.deviceSettings.presets.find(
                         (preset: any) => preset.name == value
@@ -876,29 +841,6 @@ export class Device {
             )
           }
         }
-        if (componentStatus?.white !== undefined) {
-          this.app.registerPutHandler(
-            'vessels.self',
-            this.getComponentPath(component, i, 'white'),
-            (context: string, path: string, value: any, cb: any) => {
-              return this.valueHandler(
-                context,
-                path,
-                value,
-                (value: any) => {
-                  return this.setComponentValue(
-                    component,
-                    i,
-                    'white',
-                    'white',
-                    Math.round(value * 100)
-                  )
-                },
-                cb
-              )
-            }
-          )
-        }
       }
     }
   }
@@ -913,11 +855,11 @@ export class Device {
     context: string,
     path: string,
     value: any,
-    func: (value: any) => Promise<any>,
+    func: (device: Device, value: any) => Promise<any>,
     cb: any,
     validator?: (result: any) => boolean
   ) {
-    func(value)
+    func(this, value)
       .then((status: any) => {
         const code = validator === undefined || validator(status) ? 200 : 400
         cb({
@@ -946,24 +888,68 @@ const percentConverter = (value: any) => {
   return value / 100
 }
 
-type ReadComponent = {
+type ComponentInfo = {
   flatten?: boolean
-  paths: ReadPath[]
+  paths: ComponentPath[]
 }
 
-type ReadPath = {
+type ComponentPath = {
   key: string
   path?: string
   converter?: (value: any) => any
+  putHandler?: (
+    device: Device,
+    component: string,
+    id: number,
+    value: any
+  ) => Promise<void>
   meta?: any
 }
 
-const commonSwitchPaths: ReadPath[] = [
+const brightnessHandler = (
+  device: Device,
+  component: string,
+  id: number,
+  value: any
+): Promise<void> => {
+  return device.setComponentValue(
+    component,
+    id,
+    'brightness',
+    'brightness',
+    Math.round(value * 100)
+  )
+}
+
+const rgbHandler = (
+  device: Device,
+  component: string,
+  id: number,
+  value: any
+): Promise<void> => {
+  return device.setComponentValue(component, id, 'rgb', 'rgb', value)
+}
+
+const commonSwitchPaths: ComponentPath[] = [
   {
     key: `output`,
     path: `state`,
     meta: {
       units: 'bool'
+    },
+    putHandler: (
+      device: Device,
+      component: string,
+      id: number,
+      value: any
+    ): Promise<void> => {
+      return device.setComponentValue(
+        component,
+        id,
+        'output',
+        'on',
+        value === 1 || value === 'on' || value === 'true' || value === true
+      )
     }
   },
   {
@@ -1006,7 +992,7 @@ const commonSwitchPaths: ReadPath[] = [
   }
 ]
 
-const componentReadPaths: { [key: string]: ReadComponent } = {
+const componentPaths: { [key: string]: ComponentInfo } = {
   switch: {
     paths: [
       ...commonSwitchPaths,
@@ -1042,10 +1028,12 @@ const componentReadPaths: { [key: string]: ReadComponent } = {
       ...commonSwitchPaths,
       {
         key: 'brightness',
+        path: 'dimmingLevel',
         converter: percentConverter,
         meta: {
           units: 'ratio'
-        }
+        },
+        putHandler: brightnessHandler
       }
     ]
   },
@@ -1058,10 +1046,12 @@ const componentReadPaths: { [key: string]: ReadComponent } = {
         converter: percentConverter,
         meta: {
           units: 'ratio'
-        }
+        },
+        putHandler: brightnessHandler
       },
       {
-        key: 'rgb'
+        key: 'rgb',
+        putHandler: rgbHandler
       }
     ]
   },
@@ -1074,13 +1064,29 @@ const componentReadPaths: { [key: string]: ReadComponent } = {
         converter: percentConverter,
         meta: {
           units: 'ratio'
+        },
+        putHandler: brightnessHandler
+      },
+      {
+        key: 'rgb',
+        putHandler: rgbHandler
+      },
+      {
+        key: 'white',
+        putHandler: (
+          device: Device,
+          component: string,
+          id: number,
+          value: any
+        ): Promise<void> => {
+          return device.setComponentValue(
+            component,
+            id,
+            'white',
+            'white',
+            Math.round(value * 100)
+          )
         }
-      },
-      {
-        key: 'rgb'
-      },
-      {
-        key: 'white'
       }
     ]
   },
@@ -1089,6 +1095,7 @@ const componentReadPaths: { [key: string]: ReadComponent } = {
     paths: [
       {
         key: 'state',
+        path: 'on',
         meta: {
           units: 'bool'
         }
