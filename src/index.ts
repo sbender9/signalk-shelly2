@@ -74,9 +74,9 @@ const start = (app: ServerAPI) => {
               }
 
               await device.connect()
-            } catch (error) {
-              console.error(`Failed to connect to device ${deviceId}`)
-              console.error(error)
+            } catch (error: any) {
+              app.error(`Failed to connect to device ${deviceId}`)
+              app.error(error)
               return
             }
           }
@@ -100,8 +100,8 @@ const start = (app: ServerAPI) => {
               )
               if (devProps?.enabled === undefined || devProps?.enabled) {
                 devices[id].connect().catch((error) => {
-                  console.error(`Failed to connect to configured device ${id}`)
-                  console.error(error)
+                  app.error(`Failed to connect to configured device ${id}`)
+                  app.error(error)
                 })
               }
             }
@@ -113,6 +113,7 @@ const start = (app: ServerAPI) => {
         const mockedDevices = mockDevices(app, plugin, getDeviceProps)
         mockedDevices.forEach(({ device, status }) => {
           devices[device.id!] = device
+          device.authFailed = false
           device.getCapabilities(status)
           device.registerForPuts()
           device.sendDeltas(status)
@@ -125,11 +126,11 @@ const start = (app: ServerAPI) => {
             if (props?.enabled !== false) {
               try {
                 await device.poll()
-              } catch (error) {
-                console.error(
+              } catch (error: any) {
+                app.error(
                   `Failed to poll device ${device.id || device.address}`
                 )
-                console.error(error)
+                app.error(error)
               }
             }
           })
@@ -237,6 +238,8 @@ const start = (app: ServerAPI) => {
               default: device.name || ''
             }
           }
+        } else {
+          props.title = `Failed to ${device.triedAuth ? 'authenticate with' : 'connect to'} this device`
         }
         props.properties = {
           ...props.properties,

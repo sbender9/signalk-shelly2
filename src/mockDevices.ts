@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-import { Device } from "./device"
-import { ServerAPI } from "@signalk/server-api"
+import { Device } from './device'
+import { ServerAPI } from '@signalk/server-api'
 
 export default (
   app: ServerAPI,

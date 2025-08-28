@@ -48,6 +48,7 @@ export class Device {
   components: { [key: string]: Component[] } = {}
   deviceSettings: DeviceSettings | undefined
   authFailed: boolean = true
+  triedAuth: boolean = false
 
   private ws: WebSocket | null = null
   private next_id: number = 1
@@ -115,47 +116,72 @@ export class Device {
     })
   }
 
-  async connect(): Promise<Device> {
+  async connect() {
     this.shouldReconnect = true
     this.reconnectAttempts = 0
+    this.isReconnecting = false
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        this.debug(`Connecting to device at ${this.address}`)
-        this.ws = await this.createWebSocketConnection()
-        this.setupWebSocketHandlers()
+    this.debug(`Connecting to device at ${this.address}`)
+    this.ws = await this.createWebSocketConnection()
+    return this.setupConnection()
+  }
 
-        // Reset reconnection state on successful connection
-        this.reconnectAttempts = 0
-        this.isReconnecting = false
+  private async setupConnection() {
+    try {
+      this.setupWebSocketHandlers()
 
-        const deviceInfo = await this.send('Shelly.GetDeviceInfo')
-        this.id = deviceInfo.id
-        this.name = deviceInfo.name || null
-        this.model = deviceInfo.model
-        this.gen = deviceInfo.gen
+      const deviceInfo = await this.send('Shelly.GetDeviceInfo')
+      this.id = deviceInfo.id
+      this.name = deviceInfo.name || null
+      this.model = deviceInfo.model
+      this.gen = deviceInfo.gen
 
-        this.debug(
-          `Initial device information retrieved successfully from ${this.address}: ${this.id} (${this.model}, Gen ${this.gen})`
-        )
-        this.debug(JSON.stringify(deviceInfo, null, 2))
+      this.debug(
+        `Initial device information retrieved successfully from ${this.address}: ${this.id} (${this.model}, Gen ${this.gen})`
+      )
+      this.debug(JSON.stringify(deviceInfo, null, 2))
 
-        await this.setupDevice()
-        this.authFailed = false
-        this.connected = true
-        resolve(this)
-      } catch (error: any) {
+      await this.setupDevice()
+      this.authFailed = false
+      this.connected = true
+    } catch (error: any) {
+      if (error instanceof SendError) {
         if (error.code === 401 && this.deviceSettings?.password) {
-          this.setupAuthMessage(JSON.parse(error.message))
-          this.attemptReconnection()
-        } else {
-          this.app.error(
-            `Failed to connect to device ${this.address}: ${error}`
+          this.debug(
+            `Authentication required for device ${this.id} at ${this.address}, retrying with credentials`
           )
-          reject(error)
+          this.setupAuthMessage(JSON.parse(error.message))
+          this.triedAuth = true
+          try {
+            await this.setupDevice()
+            this.authFailed = false
+            this.connected = true
+            this.debug(
+              `Successfully authenticated with device ${this.id} at ${this.address}`
+            )
+            return
+          } catch (err) {
+            this.authFailed = true
+            this.app.error(
+              `Failed to authenticate with device ${this.id} ${this.address}`
+            )
+            this.disconnect()
+            throw err
+          }
+          return
+        } else if (error.code === 401) {
+          this.authFailed = true
+          this.triedAuth = true
+          this.app.error(
+            `Failed to authenticate with device ${this.id} ${this.address}: no password set`
+          )
+          this.disconnect()
+          throw error
         }
       }
-    })
+      this.app.error(`Failed to connect to device ${this.address}: ${error}`)
+      throw error
+    }
   }
 
   private setupAuthMessage(errorMessage: any) {
@@ -210,7 +236,12 @@ export class Device {
         if (pendingRequest) {
           clearTimeout(pendingRequest.timeout)
           if (parsedMessage.error) {
-            pendingRequest.reject(parsedMessage.error)
+            pendingRequest.reject(
+              new SendError(
+                parsedMessage.error.message,
+                parsedMessage.error.code
+              )
+            )
           } else {
             pendingRequest.resolve(parsedMessage.result)
           }
@@ -225,6 +256,7 @@ export class Device {
       )
       if (this.connected) {
         this.connected = false
+        this.authMessage = undefined
         this.attemptReconnection()
       }
     })
@@ -237,6 +269,7 @@ export class Device {
       )
       if (this.connected) {
         this.connected = false
+        this.authMessage = undefined
         this.attemptReconnection()
       }
     })
@@ -280,31 +313,21 @@ export class Device {
       try {
         this.debug(`Reconnecting to device ${this.id || this.address}...`)
         this.ws = await this.createWebSocketConnection()
-        this.setupWebSocketHandlers()
-        await this.setupDevice()
-        this.authFailed = false
-        this.connected = true
-        this.reconnectAttempts = 0
-        this.isReconnecting = false
+        await this.setupConnection()
         this.debug(
           `Successfully reconnected to device ${this.id || this.address}`
         )
       } catch (error: any) {
-        if (error.code === 401) {
-          this.authFailed = true
-          this.app.error(`Failed to authenticate with device ${this.address}`)
-          return
-        } else {
-          this.debug(
-            `Reconnection attempt ${
-              this.reconnectAttempts
-            } failed for device ${this.id || this.address}: ${error}`
-          )
-          this.isReconnecting = false
+        this.debug(
+          `Reconnection attempt ${
+            this.reconnectAttempts
+          } failed for device ${this.id || this.address}: ${error}`
+        )
+        this.authMessage = undefined
+        this.isReconnecting = false
 
-          // Schedule next reconnection attempt
-          this.attemptReconnection()
-        }
+        // Schedule next reconnection attempt
+        this.attemptReconnection()
       }
     }, delay)
   }
@@ -409,6 +432,7 @@ export class Device {
   }
 
   getCapabilities(status: any) {
+    this.components = {}
     getSupportedComponents().forEach((name) => {
       for (let i = 0; i < 10; i++) {
         if (status[`${name}:${i}`]) {
@@ -569,5 +593,13 @@ export class Device {
         component.registerPuts(this.app)
       })
     })
+  }
+}
+
+class SendError extends Error {
+  code: number
+  constructor(message: string, code: number) {
+    super(message)
+    this.code = code
   }
 }
