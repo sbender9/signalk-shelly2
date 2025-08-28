@@ -147,18 +147,24 @@ export class Device {
     } catch (error: any) {
       if (error instanceof SendError) {
         if (error.code === 401 && this.deviceSettings?.password) {
-          this.debug(`Authentication required for device ${this.id} at ${this.address}, retrying with credentials`)
+          this.debug(
+            `Authentication required for device ${this.id} at ${this.address}, retrying with credentials`
+          )
           this.setupAuthMessage(JSON.parse(error.message))
           this.triedAuth = true
           try {
             await this.setupDevice()
             this.authFailed = false
             this.connected = true
-            this.debug(`Successfully authenticated with device ${this.id} at ${this.address}`)
+            this.debug(
+              `Successfully authenticated with device ${this.id} at ${this.address}`
+            )
             return
           } catch (err) {
             this.authFailed = true
-            this.app.error(`Failed to authenticate with device ${this.id} ${this.address}`)
+            this.app.error(
+              `Failed to authenticate with device ${this.id} ${this.address}`
+            )
             this.disconnect()
             throw err
           }
@@ -166,14 +172,14 @@ export class Device {
         } else if (error.code === 401) {
           this.authFailed = true
           this.triedAuth = true
-          this.app.error(`Failed to authenticate with device ${this.id} ${this.address}: no password set`)
+          this.app.error(
+            `Failed to authenticate with device ${this.id} ${this.address}: no password set`
+          )
           this.disconnect()
           throw error
         }
       }
-      this.app.error(
-        `Failed to connect to device ${this.address}: ${error}`
-      )
+      this.app.error(`Failed to connect to device ${this.address}: ${error}`)
       throw error
     }
   }
@@ -230,7 +236,12 @@ export class Device {
         if (pendingRequest) {
           clearTimeout(pendingRequest.timeout)
           if (parsedMessage.error) {
-            pendingRequest.reject(new SendError(parsedMessage.error.message, parsedMessage.error.code))
+            pendingRequest.reject(
+              new SendError(
+                parsedMessage.error.message,
+                parsedMessage.error.code
+              )
+            )
           } else {
             pendingRequest.resolve(parsedMessage.result)
           }
@@ -308,7 +319,8 @@ export class Device {
         )
       } catch (error: any) {
         this.debug(
-          `Reconnection attempt ${this.reconnectAttempts
+          `Reconnection attempt ${
+            this.reconnectAttempts
           } failed for device ${this.id || this.address}: ${error}`
         )
         this.authMessage = undefined

@@ -74,7 +74,7 @@ const start = (app: ServerAPI) => {
               }
 
               await device.connect()
-            } catch (error:any) {
+            } catch (error: any) {
               app.error(`Failed to connect to device ${deviceId}`)
               app.error(error)
               return
@@ -126,7 +126,7 @@ const start = (app: ServerAPI) => {
             if (props?.enabled !== false) {
               try {
                 await device.poll()
-              } catch (error:any) {
+              } catch (error: any) {
                 app.error(
                   `Failed to poll device ${device.id || device.address}`
                 )
