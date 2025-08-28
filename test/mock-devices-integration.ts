@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import * as sinon from 'sinon'
-import pluginFactory, { mockDevices } from '../src/index'
+import pluginFactory from '../src/index'
+import mockDevices from '../src/mockDevices'
 
 describe('Mock Device Integration Tests', () => {
   let sandbox: sinon.SinonSandbox
