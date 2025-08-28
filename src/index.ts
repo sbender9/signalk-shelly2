@@ -550,3 +550,4 @@ export const mockDevices = (
   ]
 }
 module.exports = start
+export default start
