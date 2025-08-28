@@ -23,7 +23,7 @@ const SERVICE_NAME = 'shelly'
 const deviceKey = (device: any) => device.id
 const createMockDevices = false
 
-export default function (app: ServerAPI) {
+const start = (app: ServerAPI) => {
   let props: any
   let onStop: any = []
   let devices: { [key: string]: Device } = {}
@@ -549,3 +549,4 @@ export const mockDevices = (
     }
   ]
 }
+module.exports = start
