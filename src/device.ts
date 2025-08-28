@@ -48,6 +48,7 @@ export class Device {
   components: { [key: string]: Component[] } = {}
   deviceSettings: DeviceSettings | undefined
   authFailed: boolean = true
+  triedAuth: boolean = false
 
   private ws: WebSocket | null = null
   private next_id: number = 1
@@ -147,6 +148,7 @@ export class Device {
       } catch (error: any) {
         if (error.code === 401 && this.deviceSettings?.password) {
           this.setupAuthMessage(JSON.parse(error.message))
+          this.triedAuth = true
           this.attemptReconnection()
         } else {
           this.app.error(
@@ -225,6 +227,8 @@ export class Device {
       )
       if (this.connected) {
         this.connected = false
+        this.triedAuth = false
+        this.authMessage = undefined
         this.attemptReconnection()
       }
     })
@@ -237,6 +241,8 @@ export class Device {
       )
       if (this.connected) {
         this.connected = false
+        this.triedAuth = false
+        this.authMessage = undefined
         this.attemptReconnection()
       }
     })
@@ -290,7 +296,15 @@ export class Device {
           `Successfully reconnected to device ${this.id || this.address}`
         )
       } catch (error: any) {
-        if (error.code === 401) {
+        if (
+          error.code === 401 &&
+          this.triedAuth === false &&
+          this.deviceSettings?.password
+        ) {
+          this.setupAuthMessage(JSON.parse(error.message))
+          this.triedAuth = true
+          this.attemptReconnection()
+        } else if (error.code === 401) {
           this.authFailed = true
           this.app.error(`Failed to authenticate with device ${this.address}`)
           return
@@ -300,6 +314,8 @@ export class Device {
               this.reconnectAttempts
             } failed for device ${this.id || this.address}: ${error}`
           )
+          this.triedAuth = false
+          this.authMessage = undefined
           this.isReconnecting = false
 
           // Schedule next reconnection attempt
