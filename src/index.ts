@@ -113,6 +113,7 @@ const start = (app: ServerAPI) => {
         const mockedDevices = mockDevices(app, plugin, getDeviceProps)
         mockedDevices.forEach(({ device, status }) => {
           devices[device.id!] = device
+          device.authFailed = false
           device.getCapabilities(status)
           device.registerForPuts()
           device.sendDeltas(status)
@@ -237,6 +238,8 @@ const start = (app: ServerAPI) => {
               default: device.name || ''
             }
           }
+        } else {
+          props.title = `Failed to ${device.triedAuth ? 'authenticate with' : 'connect to'} this device`
         }
         props.properties = {
           ...props.properties,
