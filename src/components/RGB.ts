@@ -18,6 +18,16 @@ import { Light } from './Light'
 import { Device } from '../device'
 import { Meta, PathValue, ServerAPI, ActionResult } from '@signalk/server-api'
 
+const success: ActionResult = {
+  state: 'COMPLETED',
+  statusCode: 200
+}
+
+const error: ActionResult = {
+  state: 'COMPLETED',
+  statusCode: 400
+}
+
 export class RGB extends Light {
   constructor(
     device: Device,
@@ -53,7 +63,8 @@ export class RGB extends Light {
               rgb[0] == preset.red &&
               rgb[1] == preset.green &&
               rgb[2] == preset.blue &&
-              (preset.white === undefined || rgb[3] == preset.white) &&
+              (preset.white === undefined ||
+                componentStatus.white == preset.white) &&
               (preset.bright === 0 ||
                 componentStatus.brightness == preset.bright)
             )
@@ -133,54 +144,24 @@ export class RGB extends Light {
             (preset: any) => preset.name == value
           )
           if (!preset || value === 'Unknown') {
-            return {
-              state: 'COMPLETED',
-              statusCode: 400,
-              message: `invalid preset ${value}`
-            }
+            return { ...error, message: `invalid preset ${value}` }
           }
           const rgb = [preset.red, preset.green, preset.blue]
+          const promises: Promise<void>[] = [this.setValue('rgb', 'rgb', rgb)]
           if (preset.white !== undefined) {
-            rgb.push(preset.white)
+            promises.push(this.setValue('white', 'white', preset.white))
           }
-          this.device
-            .send(`${this.apiName}.Set`, {
-              id: this.componentId,
-              rgb
-            })
+          if (preset.bright !== undefined && preset.bright !== 0) {
+            promises.push(
+              this.setValue('brightness', 'brightness', preset.bright)
+            )
+          }
+          Promise.all(promises)
             .then(() => {
-              if (preset.bright === undefined || preset.bright === 0) {
-                cb({
-                  state: 'COMPLETED',
-                  statusCode: 200
-                })
-              } else {
-                this.device
-                  .send(`${this.apiName}.Set`, {
-                    id: this.componentId,
-                    brightness: preset.bright
-                  })
-                  .then(() => {
-                    cb({
-                      state: 'COMPLETED',
-                      statusCode: 200
-                    })
-                  })
-                  .catch((err) => {
-                    cb({
-                      state: 'COMPLETED',
-                      statusCode: 400,
-                      message: err.message
-                    })
-                  })
-              }
+              cb(success)
             })
             .catch((err) => {
-              cb({
-                state: 'COMPLETED',
-                statusCode: 400,
-                message: err.message
-              })
+              cb({ ...error, message: err.message })
             })
           return { state: 'PENDING' }
         }

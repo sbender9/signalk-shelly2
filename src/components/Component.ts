@@ -141,7 +141,7 @@ export abstract class Component {
       [setKey]: value
     })
     const status = await this.getStatus()
-    if (status[getKey] !== value) {
+    if (JSON.stringify(status[getKey]) != JSON.stringify(value)) {
       throw new Error(
         `Failed to set ${this.componentName} ${this.componentId} to ${value}`
       )
