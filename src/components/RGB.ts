@@ -63,7 +63,8 @@ export class RGB extends Light {
               rgb[0] == preset.red &&
               rgb[1] == preset.green &&
               rgb[2] == preset.blue &&
-              (preset.white === undefined || componentStatus.white == preset.white) &&
+              (preset.white === undefined ||
+                componentStatus.white == preset.white) &&
               (preset.bright === 0 ||
                 componentStatus.brightness == preset.bright)
             )
