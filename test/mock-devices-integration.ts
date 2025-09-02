@@ -37,6 +37,10 @@ describe('Mock Device Integration Tests', () => {
       expect(mockDevices).to.be.a('function')
     })
 
+    it('mockDevices are turned off', () => {
+      expect(plugin.createMockDevices).to.be.false
+    })
+
     it('should create mock devices with correct structure', () => {
       const mockedDevices = mockDevices(mockApp, plugin)
 

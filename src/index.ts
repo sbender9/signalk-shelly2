@@ -22,7 +22,6 @@ import mockDevices from './mockDevices'
 
 const SERVICE_NAME = 'shelly'
 const deviceKey = (device: any) => device.id
-const createMockDevices = false
 
 const start = (app: ServerAPI) => {
   let props: any
@@ -109,7 +108,7 @@ const start = (app: ServerAPI) => {
         })
       }
 
-      if (createMockDevices) {
+      if ((plugin as any).createMockDevices) {
         const mockedDevices = mockDevices(app, plugin, getDeviceProps)
         mockedDevices.forEach(({ device, status }) => {
           devices[device.id!] = device
@@ -355,6 +354,8 @@ const start = (app: ServerAPI) => {
   function getDeviceProps(id: string) {
     return props[`Device ID ${id}`]
   }
+
+  (plugin as any).createMockDevices = false
 
   return plugin
 }
