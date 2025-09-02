@@ -37,7 +37,7 @@ describe('Mock Devices Tests', () => {
     it('should create all expected mock devices', () => {
       const mockedDevices = mockDevices(mockApp, mockPlugin)
 
-      expect(mockedDevices).to.have.length(9)
+      expect(mockedDevices).to.have.length(10)
 
       const deviceIds = mockedDevices.map(({ device }) => device.id)
       expect(deviceIds).to.include.members([
@@ -49,7 +49,8 @@ describe('Mock Devices Tests', () => {
         'shelly-energyMeter',
         'shelly-rgb',
         'shelly-rgbw',
-        'shelly-light'
+        'shelly-light',
+        'shelly-uni'
       ])
     })
 
@@ -771,6 +772,42 @@ describe('Mock Devices Tests', () => {
         )
         expect(brightness1).to.exist
         expect(brightness1.value).to.equal(0.9) // 90% converted to ratio
+      }
+    })
+
+    it('should send correct deltas for uni device', () => {
+      const uniDevice = mockedDevices.find(
+        ({ device }) => device.id === 'shelly-uni'
+      )
+
+      mockApp.handleMessage.resetHistory()
+      uniDevice.device.getCapabilities(uniDevice.status)
+      uniDevice.device.sendDeltas(uniDevice.status)
+
+      const calls = mockApp.handleMessage.getCalls()
+      const deltaCall = calls.find(
+        (call) => call.args[1].updates && call.args[1].updates[0].values
+      )
+
+      expect(deltaCall).to.exist
+      if (deltaCall) {
+        const values = deltaCall.args[1].updates[0].values
+
+        const temperatureValues = values.filter(
+          (v: any) =>
+            v.path.includes('.shelly-uni.temperature') &&
+            typeof v.value === 'number'
+        )
+        expect(temperatureValues).to.have.length(1)
+        expect(temperatureValues[0].value).to.equal(293.04999999999995)
+
+        const voltageValues = values.filter(
+          (v: any) =>
+            v.path.includes('.shelly-uni.voltage') &&
+            typeof v.value === 'number'
+        )
+        expect(voltageValues).to.have.length(1)
+        expect(voltageValues[0].value).to.equal(12.41)
       }
     })
 

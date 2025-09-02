@@ -207,6 +207,49 @@ export default (
         },
         'light:1': { output: false, brightness: 90 }
       }
+    },
+    {
+      device: new Device(
+        app,
+        plugin,
+        undefined,
+        'shelly-uni',
+        '192.168.99.100'
+      ),
+      status: {
+        'voltmeter:100': {
+          id: 100,
+          voltage: 12.41
+        },
+        'temperature:100': {
+          id: 100,
+          tC: 19.9,
+          tF: 67.9
+        },
+        'switch:0': {
+          id: 0,
+          source: 'HTTP_in',
+          output: false
+        },
+        'switch:1': {
+          id: 1,
+          source: 'SHC',
+          output: false
+        },
+        'input:0': {
+          id: 0,
+          state: false
+        },
+        'input:1': {
+          id: 1,
+          state: false
+        },
+        'input:2': {
+          id: 2,
+          counts: null,
+          freq: null
+        }
+      }
     }
   ]
 }
