@@ -22,7 +22,7 @@ import mockDevices from './mockDevices'
 
 const SERVICE_NAME = 'shelly'
 const deviceKey = (device: any) => device.id
-const createMockDevices = true
+const createMockDevices = false
 
 const start = (app: ServerAPI) => {
   let props: any
