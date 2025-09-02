@@ -434,9 +434,10 @@ export class Device {
   getCapabilities(status: any) {
     this.components = {}
     getSupportedComponents().forEach((name) => {
-      for (let i = 0; i < 10; i++) {
-        if (status[`${name}:${i}`]) {
-          const component = createComponent(name, this, i)
+      Object.keys(status).filter((key) => key.startsWith(`${name}:`)).forEach((key) => {
+        const index = parseInt(key.split(':')[1])
+        if (!isNaN(index)) {
+          const component = createComponent(name, this, index)
           if (component) {
             if (this.components[name] === undefined) {
               this.components[name] = []
@@ -444,7 +445,7 @@ export class Device {
             this.components[name].push(component)
           }
         }
-      }
+      })
     })
   }
 

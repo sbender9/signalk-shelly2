@@ -40,7 +40,7 @@ describe('Mock Device Integration Tests', () => {
     it('should create mock devices with correct structure', () => {
       const mockedDevices = mockDevices(mockApp, plugin)
 
-      expect(mockedDevices).to.have.length(9)
+      expect(mockedDevices).to.have.length(10)
 
       // Test that each mock device has the expected structure
       mockedDevices.forEach(({ device, status }) => {
