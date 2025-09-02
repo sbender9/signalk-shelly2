@@ -794,18 +794,21 @@ describe('Mock Devices Tests', () => {
         const values = deltaCall.args[1].updates[0].values
 
         const temperatureValues = values.filter(
-          (v: any) => v.path.includes('.shelly-uni.temperature') && typeof v.value === 'number'
+          (v: any) =>
+            v.path.includes('.shelly-uni.temperature') &&
+            typeof v.value === 'number'
         )
         expect(temperatureValues).to.have.length(1)
         expect(temperatureValues[0].value).to.equal(293.04999999999995)
 
         const voltageValues = values.filter(
-          (v: any) => v.path.includes('.shelly-uni.voltage') && typeof v.value === 'number'
+          (v: any) =>
+            v.path.includes('.shelly-uni.voltage') &&
+            typeof v.value === 'number'
         )
         expect(voltageValues).to.have.length(1)
         expect(voltageValues[0].value).to.equal(12.41)
       }
-
     })
 
     it('should handle component detection from status', () => {
