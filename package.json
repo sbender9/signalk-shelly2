@@ -14,7 +14,9 @@
     "watch": "npm run build -- -w"
   },
   "keywords": [
-    "signalk-node-server-plugin"
+    "signalk-node-server-plugin",
+    "signalk-category-digital-switching",
+    "signalk-category-hardware"
   ],
   "author": "scott@scottbender.net",
   "license": "Apache-2.0",
