@@ -140,6 +140,7 @@ export abstract class Component {
       id: this.componentId,
       [setKey]: value
     })
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     const status = await this.getStatus()
     if (JSON.stringify(status[getKey]) != JSON.stringify(value)) {
       throw new Error(

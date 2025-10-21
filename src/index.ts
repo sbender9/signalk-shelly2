@@ -355,7 +355,7 @@ const start = (app: ServerAPI) => {
     return props[`Device ID ${id}`]
   }
 
-  (plugin as any).createMockDevices = false
+  ;(plugin as any).createMockDevices = false
 
   return plugin
 }
