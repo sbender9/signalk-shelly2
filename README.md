@@ -54,6 +54,7 @@ Please report any devices you've tested so that I can add to the list. Please op
 - Shelly Plus 1 Gen2 (SNSW-001X16EU, SNSW-001X15UL)
 - Shelly Plus RGBW Gen2 (SNDC-0D4P10WW)
 - Shelly Uni Plus Gen2 (SNSN-0043X)
+- Shelly Ogemray Smart relay 25A (S3PB-O3AR000001)
 
 ## Troubleshooting
 
