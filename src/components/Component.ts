@@ -140,12 +140,15 @@ export abstract class Component {
       id: this.componentId,
       [setKey]: value
     })
-    await new Promise((resolve) => setTimeout(resolve, 1000))
     const status = await this.getStatus()
     if (JSON.stringify(status[getKey]) != JSON.stringify(value)) {
-      throw new Error(
-        `Failed to set ${this.componentName} ${this.componentId} to ${value}`
-      )
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const status = await this.getStatus()
+      if (JSON.stringify(status[getKey]) != JSON.stringify(value)) {
+        throw new Error(
+          `Failed to set ${this.componentName} ${this.componentId} to ${value}`
+        )
+      }
     }
     this.device.sendDeltas({
       [`${this.componentName}:${this.componentId}`]: status
