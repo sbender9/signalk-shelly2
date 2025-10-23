@@ -49,6 +49,18 @@ const start = (app: ServerAPI) => {
           const deviceId = data.fullname.split('.', 1)[0]
 
           if (devices[deviceId]) {
+            const device = devices[deviceId]
+            if (
+              device.address !== data.addresses[0] ||
+              device.hostname !== data.host
+            ) {
+              app.debug(
+                `Device ${deviceId} address changed to ${data.addresses[0]}`
+              )
+              device.address = data.addresses[0]
+              device.hostname = data.host
+              device.sentStaticDeltas = false
+            }
             return
           }
 
