@@ -61,7 +61,7 @@ export class Device {
   private reconnectTimeout: NodeJS.Timeout | null = null
   private shouldReconnect: boolean = true
   private isReconnecting: boolean = false
-  private sentStaticDeltas: boolean = false
+  sentStaticDeltas: boolean = false
   private authMessage: any = undefined
 
   constructor(
@@ -503,6 +503,25 @@ export class Device {
         values.push({
           path: this.getDevicePath('model'),
           value: this.model
+        })
+      }
+
+      values.push({
+        path: this.getDevicePath('address'),
+        value: this.address
+      })
+
+      if (this.id) {
+        values.push({
+          path: this.getDevicePath('id'),
+          value: this.id
+        })
+      }
+
+      if (this.hostname) {
+        values.push({
+          path: this.getDevicePath('hostname'),
+          value: this.hostname
         })
       }
 
