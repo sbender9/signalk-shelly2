@@ -50,8 +50,13 @@ const start = (app: ServerAPI) => {
 
           if (devices[deviceId]) {
             const device = devices[deviceId]
-            if (device.address !== data.addresses[0] || device.hostname !== data.host) {
-              app.debug(`Device ${deviceId} address changed to ${data.addresses[0]}`)
+            if (
+              device.address !== data.addresses[0] ||
+              device.hostname !== data.host
+            ) {
+              app.debug(
+                `Device ${deviceId} address changed to ${data.addresses[0]}`
+              )
               device.address = data.addresses[0]
               device.hostname = data.host
               device.sentStaticDeltas = false
