@@ -26,7 +26,6 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
         'shelly-smokeDetector1',
         '192.168.99.100'
       ),
@@ -42,7 +41,6 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
         'shelly-smokeDetector2',
         '192.168.99.100'
       ),
@@ -59,7 +57,6 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
         'shelly-powerMeter',
         '192.168.99.100'
       ),
@@ -85,7 +82,7 @@ export default (
       }
     },
     {
-      device: new Device(app, plugin, undefined, 'shelly-hm', '192.168.99.100'),
+      device: new Device(app, plugin, 'shelly-hm', '192.168.99.100'),
       status: {
         'temperature:0': { tC: 22 },
         'humidity:0': { rh: 22 }
@@ -95,7 +92,6 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
         'shelly-entergyMeter1',
         '192.168.99.100'
       ),
@@ -114,7 +110,6 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
         'shelly-energyMeter',
         '192.168.99.100'
       ),
@@ -155,7 +150,6 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
         'shelly-rgb',
         '192.168.99.100'
       ),
@@ -190,7 +184,6 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
         'shelly-light',
         '192.168.99.100'
       ),
@@ -212,7 +205,6 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
         'shelly-uni',
         '192.168.99.100'
       ),

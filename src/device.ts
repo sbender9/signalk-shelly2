@@ -67,21 +67,22 @@ export class Device {
   constructor(
     app: ServerAPI,
     plugin: Plugin,
-    deviceSettings: any,
-    id: string,
     address: string,
     hostname?: string,
     name?: string
   ) {
     this.address = address
-    this.deviceSettings = deviceSettings
     this.app = app
     this.plugin = plugin
     this.hostname = hostname
     this.name = name
-    this.id = id
+    this.maxReconnectAttempts = -1
+    this.shouldReconnect = true
+  }
 
+  setDeviceSettings(deviceSettings: DeviceSettings) {
     // Configure reconnection parameters from device settings or use defaults
+    this.deviceSettings = deviceSettings
     this.maxReconnectAttempts = deviceSettings?.maxReconnectAttempts ?? -1
     this.shouldReconnect = deviceSettings?.enableReconnection !== false // Default to true unless explicitly disabled
   }
@@ -488,7 +489,7 @@ export class Device {
   sendDeltas(status: any) {
     let values: PathValue[] = []
 
-    if (this.deviceSettings?.enabled === false) {
+    if (this.deviceSettings === undefined || this.deviceSettings?.enabled === false) {
       return
     }
 

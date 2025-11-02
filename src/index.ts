@@ -46,47 +46,35 @@ const start = (app: ServerAPI) => {
           data.type[0].name === SERVICE_NAME &&
           data.fullname
         ) {
-          const deviceId = data.fullname.split('.', 1)[0]
-
-          if (devices[deviceId]) {
-            const device = devices[deviceId]
-            if (
-              device.address !== data.addresses[0] ||
-              device.hostname !== data.host
-            ) {
-              app.debug(
-                `Device ${deviceId} address changed to ${data.addresses[0]}`
-              )
-              device.address = data.addresses[0]
-              device.hostname = data.host
-              device.sentStaticDeltas = false
-            }
-            return
-          }
 
           const gen = data.txt
             .find((txt: any) => txt.startsWith('gen='))
             .split('=')[1]
 
           if (gen && Number(gen) >= 2) {
-            const props = getDeviceProps(deviceId)
-            const device = new Device(
+            let device = devices[data.addresses[0]]
+            if (device) {
+              // already known device, ignore
+              return
+            }
+            
+            device = new Device(
               app,
               plugin,
-              props,
-              deviceId,
               data.addresses[0],
               data.host
             )
+            devices[device.address] = device
             try {
-              devices[deviceId] = device
-              if (props?.enabled === false) {
-                return
-              }
-
               await device.connect()
+              const props = getDeviceProps(device.id!)
+              if (props && props?.enabled !== false) {
+                device.setDeviceSettings(props)
+              } else {
+                device.disconnect()
+              }
             } catch (error: any) {
-              app.error(`Failed to connect to device ${deviceId}`)
+              app.error(`Failed to connect to device ${device.id}`)
               app.error(error)
               return
             }
@@ -94,11 +82,12 @@ const start = (app: ServerAPI) => {
         }
       })
 
+      /*
       if (props) {
         Object.keys(props).forEach((key) => {
           if (key.startsWith('Device ID ')) {
             const devProps = props[key]
-            const id = devProps.deviceId
+            const id = devProps.deviƒceId
             if (devices[id] === undefined) {
               devices[id] = new Device(
                 app,
@@ -119,11 +108,12 @@ const start = (app: ServerAPI) => {
           }
         })
       }
+*/
 
       if ((plugin as any).createMockDevices) {
         const mockedDevices = mockDevices(app, plugin, getDeviceProps)
         mockedDevices.forEach(({ device, status }) => {
-          devices[device.id!] = device
+          devices[device.address] = device
           device.authFailed = false
           device.getCapabilities(status)
           device.registerForPuts()
@@ -134,7 +124,8 @@ const start = (app: ServerAPI) => {
       if (props?.poll > 0) {
         pollInterval = setInterval(() => {
           Object.values(devices).forEach(async (device: Device) => {
-            if (props?.enabled !== false) {
+            const devProps = getDeviceProps(device.id!)
+            if (devProps?.enabled === true) {
               try {
                 await device.poll()
               } catch (error: any) {
