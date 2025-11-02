@@ -427,8 +427,14 @@ export class Device {
       return
     }
 
-    const status = await this.send('Shelly.GetStatus')
-    this.sendDeltas(status)
+    try {
+      const status = await this.send('Shelly.GetStatus')
+      this.sendDeltas(status)
+    } catch (error) {
+      this.disconnect()
+      this.connect()
+      throw error
+    }
   }
 
   getCapabilities(status: any) {
