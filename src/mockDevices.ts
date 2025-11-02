@@ -54,12 +54,7 @@ export default (
       }
     },
     {
-      device: new Device(
-        app,
-        plugin,
-        'shelly-powerMeter',
-        '192.168.99.100'
-      ),
+      device: new Device(app, plugin, 'shelly-powerMeter', '192.168.99.100'),
       status: {
         'pm1:0': {
           freq: 10,
@@ -89,12 +84,7 @@ export default (
       }
     },
     {
-      device: new Device(
-        app,
-        plugin,
-        'shelly-entergyMeter1',
-        '192.168.99.100'
-      ),
+      device: new Device(app, plugin, 'shelly-entergyMeter1', '192.168.99.100'),
       status: {
         'em1:0': {
           freq: 10,
@@ -107,12 +97,7 @@ export default (
       }
     },
     {
-      device: new Device(
-        app,
-        plugin,
-        'shelly-energyMeter',
-        '192.168.99.100'
-      ),
+      device: new Device(app, plugin, 'shelly-energyMeter', '192.168.99.100'),
       status: {
         'em:0': {
           a_current: 10,
@@ -147,12 +132,7 @@ export default (
       }
     },
     {
-      device: new Device(
-        app,
-        plugin,
-        'shelly-rgb',
-        '192.168.99.100'
-      ),
+      device: new Device(app, plugin, 'shelly-rgb', '192.168.99.100'),
       status: {
         'rgb:0': { output: true, rgb: [255, 0, 0], brightness: 50 }
       }
@@ -181,12 +161,7 @@ export default (
       }
     },
     {
-      device: new Device(
-        app,
-        plugin,
-        'shelly-light',
-        '192.168.99.100'
-      ),
+      device: new Device(app, plugin, 'shelly-light', '192.168.99.100'),
       status: {
         'light:0': {
           output: true,
@@ -202,12 +177,7 @@ export default (
       }
     },
     {
-      device: new Device(
-        app,
-        plugin,
-        'shelly-uni',
-        '192.168.99.100'
-      ),
+      device: new Device(app, plugin, 'shelly-uni', '192.168.99.100'),
       status: {
         'voltmeter:100': {
           id: 100,

@@ -46,7 +46,6 @@ const start = (app: ServerAPI) => {
           data.type[0].name === SERVICE_NAME &&
           data.fullname
         ) {
-
           const gen = data.txt
             .find((txt: any) => txt.startsWith('gen='))
             .split('=')[1]
@@ -57,13 +56,8 @@ const start = (app: ServerAPI) => {
               // already known device, ignore
               return
             }
-            
-            device = new Device(
-              app,
-              plugin,
-              data.addresses[0],
-              data.host
-            )
+
+            device = new Device(app, plugin, data.addresses[0], data.host)
             devices[device.address] = device
             try {
               await device.connect()

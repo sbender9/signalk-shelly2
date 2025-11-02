@@ -489,7 +489,10 @@ export class Device {
   sendDeltas(status: any) {
     let values: PathValue[] = []
 
-    if (this.deviceSettings === undefined || this.deviceSettings?.enabled === false) {
+    if (
+      this.deviceSettings === undefined ||
+      this.deviceSettings?.enabled === false
+    ) {
       return
     }
 
