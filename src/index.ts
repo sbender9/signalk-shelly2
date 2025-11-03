@@ -27,13 +27,18 @@ const start = (app: ServerAPI) => {
   let props: any
   let onStop: any = []
   let devices: { [key: string]: Device } = {}
+  let deviceConfigs: any[] = []
+  let foundConfiguredDevices = 0
   let browser: any
   let pollInterval: any = null
   let connectTimeout: any = null
+  let started = false
 
   const plugin: Plugin = {
     start: (properties: any) => {
       props = properties
+      started = true
+      deviceConfigs = props?.peripherals ?? []
 
       browser = mdns.createBrowser(mdns.tcp(SERVICE_NAME))
 
@@ -171,6 +176,7 @@ const start = (app: ServerAPI) => {
     },
 
     stop: function () {
+      started = false
       onStop.forEach((f: any) => f())
       onStop = []
       Object.values(devices).forEach((device: any) => {
@@ -195,9 +201,9 @@ const start = (app: ServerAPI) => {
     name: 'Shelly 2',
     description: 'Signal K Plugin For Shelly Gen2+ devices',
 
-    schema: () => {
-      const schema: any = {
+    schema: {
         type: 'object',
+        htmlDescription: '',
         properties: {
           poll: {
             type: 'number',
@@ -207,8 +213,8 @@ const start = (app: ServerAPI) => {
             default: 5000
           }
         }
-      }
-
+      },
+/*
       Object.values(devices).forEach((device) => {
         //debug(`adding Device ID ${deviceKey(device)} to schema`)
 
@@ -371,8 +377,9 @@ const start = (app: ServerAPI) => {
       })
 
       return schema
-    },
+    },*/
 
+    /*
     uiSchema: () => {
       const uiSchema: any = {}
 
@@ -385,6 +392,42 @@ const start = (app: ServerAPI) => {
       })
 
       return uiSchema
+    },
+    */
+
+    registerWithRouter: (router) => {
+      router.get('/getPluginState', async (_req: any, res: any) => {
+        res.status(200).json({
+          "connectionId": Date.now(),
+          "state": (started ? "started" : "stopped")
+        })
+      })
+
+      router.get('/getBaseData', (_req: any, res: any) => {
+        res.status(200).json(
+          {
+            schema: plugin.schema,
+            data: {
+              poll: props.poll
+            }
+          }
+        );
+      })
+
+      router.get('/getProgress', (_req: any, res: any) => {
+        let deviceCount = deviceConfigs.filter((dc) => dc.active).length
+        const json = {
+          "progress": foundConfiguredDevices / deviceCount, "maxTimeout": 1,
+          "deviceCount": foundConfiguredDevices,
+          "totalDevices": deviceCount
+        }
+        res.status(200).json(json)
+      })
+      
+      router.get('/getSensors', (_req: any, res: any) => {
+        const t = sensorsToJSON()
+        res.status(200).json(t)
+      })
     }
   }
 

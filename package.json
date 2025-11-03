@@ -11,19 +11,27 @@
     "ci-test": "npm run build && npm run test && npm run ci-lint",
     "format": "npm run prettier && npm run lint",
     "build": "tsc",
-    "watch": "npm run build -- -w"
+    "watch": "npm run build -- -w",
+    "watch:web": "webpack --watch --mode development",
+    "build:web": "webpack --mode=production"
   },
   "keywords": [
     "signalk-node-server-plugin",
     "signalk-category-digital-switching",
-    "signalk-category-hardware"
+    "signalk-category-hardware",
+    "signalk-plugin-configurator"
   ],
   "author": "scott@scottbender.net",
   "license": "Apache-2.0",
   "dependencies": {
     "camelcase": "^6.2.0",
     "mdns-js": "^1.0.3",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "@rjsf/bootstrap-4": "^5.24.12",
+    "@rjsf/core": "^5.24.11",
+    "@rjsf/utils": "^5.24.11",
+    "@rjsf/validator-ajv8": "^5.24.11",
+    "buffer": "^6.0.3"
   },
   "repository": {
     "type": "git",
@@ -49,6 +57,34 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.40.0"
+    "typescript-eslint": "^8.40.0",
+    "@babel/core": "^7.11.6",
+    "@babel/preset-react": "^7.10.4",
+    "@fortawesome/fontawesome-free": "^5.15.1",
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
+    "@material-ui/core": "^4.12.4",
+    "@material-ui/icons": "^4.11.3",
+    "babel-loader": "^8.1.0",
+    "css-loader": "^5.0.0",
+    "d3": "^6.2.0",
+    "file-loader": "^6.1.1",
+    "font-awesome": "^4.7.0",
+    "react": "^16.13.1",
+    "react-bootstrap": "^1.6.5",
+    "react-dom": "^16.13.1",
+    "react-html-parser": "^2.0.2",
+    "react-markdown": "^4.3.1",
+    "react-redux": "^5.1.2",
+    "react-select": "^3.1.0",
+    "reactstrap": "^5.0.0",
+    "recharts": "^1.8.5",
+    "redux": "^3.7.2",
+    "redux-thunk": "2.3.0",
+    "simple-line-icons": "^2.5.5",
+    "style-loader": "^2.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^4.0.0"
   }
 }
