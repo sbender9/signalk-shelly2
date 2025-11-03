@@ -85,6 +85,7 @@ export class Device {
     this.deviceSettings = deviceSettings
     this.maxReconnectAttempts = deviceSettings?.maxReconnectAttempts ?? -1
     this.shouldReconnect = deviceSettings?.enableReconnection !== false // Default to true unless explicitly disabled
+    this.registerForPuts()
   }
 
   private debug(msg: string, ...args: any[]) {
@@ -219,7 +220,6 @@ export class Device {
     this.debug(`Initial device status retrieved successfully from ${this.id}`)
     this.debug(JSON.stringify(result, null, 2))
     this.getCapabilities(result)
-    this.registerForPuts()
     this.sendDeltas(result)
   }
 
@@ -611,6 +611,13 @@ export class Device {
   }
 
   registerForPuts() {
+    if (
+      this.deviceSettings === undefined ||
+      this.deviceSettings?.enabled === false
+    ) {
+      return
+    }
+
     Object.values(this.components).forEach((components) => {
       components.forEach((component) => {
         const componentProps = this.getComponentProps(
