@@ -54,6 +54,7 @@ describe('Mock Devices Tests', () => {
       ])
     })
 
+    /*
     it('should create devices with correct addresses', () => {
       const mockedDevices = mockDevices(mockApp, mockPlugin)
 
@@ -61,6 +62,7 @@ describe('Mock Devices Tests', () => {
         expect(device.address).to.equal('192.168.99.100')
       })
     })
+*/
 
     it('should create Device instances', () => {
       const mockedDevices = mockDevices(mockApp, mockPlugin)

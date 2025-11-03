@@ -13,22 +13,29 @@
  * limitations under the License.
  */
 
-import { Device } from './device'
+import { Device, DeviceSettings } from './device'
 import { ServerAPI } from '@signalk/server-api'
+
+const minimalSettings: DeviceSettings = {
+  enabled: true,
+  displayName: undefined,
+  devicePath: undefined
+}
 
 export default (
   app: ServerAPI,
   plugin: any,
-  getDeviceProps?: (id: string) => any
+  _getDeviceProps?: (id: string) => any
 ) => {
   return [
     {
       device: new Device(
         app,
         plugin,
-        undefined,
+        '192.168.99.100',
+        'host.name',
         'shelly-smokeDetector1',
-        '192.168.99.100'
+        minimalSettings
       ),
       status: {
         'devicepower:0': {
@@ -42,9 +49,10 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
+        '192.168.99.102',
+        'host.name',
         'shelly-smokeDetector2',
-        '192.168.99.100'
+        minimalSettings
       ),
       status: {
         'devicepower:0': {
@@ -59,9 +67,10 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
+        '192.168.99.103',
+        'host.name',
         'shelly-powerMeter',
-        '192.168.99.100'
+        minimalSettings
       ),
       status: {
         'pm1:0': {
@@ -85,7 +94,14 @@ export default (
       }
     },
     {
-      device: new Device(app, plugin, undefined, 'shelly-hm', '192.168.99.100'),
+      device: new Device(
+        app,
+        plugin,
+        '192.168.99.104',
+        'host.name',
+        'shelly-hm',
+        minimalSettings
+      ),
       status: {
         'temperature:0': { tC: 22 },
         'humidity:0': { rh: 22 }
@@ -95,9 +111,10 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
+        '192.168.99.105',
+        'host.name',
         'shelly-entergyMeter1',
-        '192.168.99.100'
+        minimalSettings
       ),
       status: {
         'em1:0': {
@@ -114,9 +131,10 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
+        '192.168.99.106',
+        'host.name',
         'shelly-energyMeter',
-        '192.168.99.100'
+        minimalSettings
       ),
       status: {
         'em:0': {
@@ -155,9 +173,10 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
+        '192.168.99.107',
+        'host.name',
         'shelly-rgb',
-        '192.168.99.100'
+        minimalSettings
       ),
       status: {
         'rgb:0': { output: true, rgb: [255, 0, 0], brightness: 50 }
@@ -167,9 +186,11 @@ export default (
       device: new Device(
         app,
         plugin,
-        getDeviceProps?.(`shelly-rgbw`),
+        //getDeviceProps?.(`shelly-rgbw`),
+        '192.168.99.108',
+        'host.name',
         'shelly-rgbw',
-        '192.168.99.100'
+        minimalSettings
       ),
       status: {
         'rgbw:0': {
@@ -190,9 +211,10 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
+        '192.168.99.109',
+        'host.name',
         'shelly-light',
-        '192.168.99.100'
+        minimalSettings
       ),
       status: {
         'light:0': {
@@ -212,9 +234,10 @@ export default (
       device: new Device(
         app,
         plugin,
-        undefined,
+        '192.168.99.110',
+        'host.name',
         'shelly-uni',
-        '192.168.99.100'
+        minimalSettings
       ),
       status: {
         'voltmeter:100': {

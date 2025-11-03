@@ -85,10 +85,11 @@ describe('Device Class Unit Tests', () => {
       const device = new Device(
         mockApp,
         mockPlugin,
-        deviceSettings,
-        '12345',
-        '192.168.1.100'
+        '192.168.1.100',
+        'host.name',
+        '12345'
       )
+      device.setDeviceSettings(deviceSettings)
 
       expect(device.id).to.equal('12345')
       expect(device.connected).to.be.false
@@ -107,10 +108,11 @@ describe('Device Class Unit Tests', () => {
       device = new Device(
         mockApp,
         mockPlugin,
-        deviceSettings,
-        'shellyplusht-7c87ce63b954',
-        '192.168.1.100'
+        '192.168.1.100',
+        'host.name',
+        'shellyplusht-7c87ce63b954'
       )
+      device.setDeviceSettings(deviceSettings)
 
       // Simulate connected state
       device.connected = true
@@ -277,9 +279,11 @@ describe('Device Class Unit Tests', () => {
       const testDevice = new Device(
         mockApp,
         mockPlugin,
-        deviceSettings,
-        '192.168.1.100'
+        '192.168.1.100',
+        'host.name'
       )
+
+      testDevice.setDeviceSettings(deviceSettings)
 
       // Create a test status with temperature
       const testStatus = {
@@ -313,10 +317,12 @@ describe('Device Class Unit Tests', () => {
       const device = new Device(
         mockApp,
         mockPlugin,
-        minimalSettings,
-        '123456',
-        '192.168.1.100'
+        '192.168.1.100',
+        'host.name',
+        '123456'
       )
+
+      device.setDeviceSettings(minimalSettings)
 
       expect(device.address).to.equal('192.168.1.100')
       expect(device.connected).to.be.false

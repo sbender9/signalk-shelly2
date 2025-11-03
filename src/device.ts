@@ -32,8 +32,8 @@ type PendingRequest = {
 
 export type DeviceSettings = {
   enabled: boolean
-  displayName: string
-  devicePath: string
+  displayName: string | undefined
+  devicePath: string | undefined
   [key: string]: any
 }
 
@@ -67,23 +67,29 @@ export class Device {
   constructor(
     app: ServerAPI,
     plugin: Plugin,
-    deviceSettings: any,
-    id: string,
     address: string,
-    hostname?: string,
-    name?: string
+    hostname: string,
+    id?: string,
+    deviceSettings?: DeviceSettings
   ) {
     this.address = address
-    this.deviceSettings = deviceSettings
     this.app = app
     this.plugin = plugin
     this.hostname = hostname
-    this.name = name
-    this.id = id
+    this.maxReconnectAttempts = -1
+    this.shouldReconnect = true
+    this.id = id || null
+    if (deviceSettings) {
+      this.setDeviceSettings(deviceSettings)
+    }
+  }
 
+  setDeviceSettings(deviceSettings: DeviceSettings) {
     // Configure reconnection parameters from device settings or use defaults
+    this.deviceSettings = deviceSettings
     this.maxReconnectAttempts = deviceSettings?.maxReconnectAttempts ?? -1
     this.shouldReconnect = deviceSettings?.enableReconnection !== false // Default to true unless explicitly disabled
+    this.registerForPuts()
   }
 
   private debug(msg: string, ...args: any[]) {
@@ -488,7 +494,10 @@ export class Device {
   sendDeltas(status: any) {
     let values: PathValue[] = []
 
-    if (this.deviceSettings?.enabled === false) {
+    if (
+      this.deviceSettings === undefined ||
+      this.deviceSettings?.enabled === false
+    ) {
       return
     }
 
@@ -607,6 +616,13 @@ export class Device {
   }
 
   registerForPuts() {
+    if (
+      this.deviceSettings === undefined ||
+      this.deviceSettings?.enabled === false
+    ) {
+      return
+    }
+
     Object.values(this.components).forEach((components) => {
       components.forEach((component) => {
         const componentProps = this.getComponentProps(
