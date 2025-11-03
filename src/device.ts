@@ -32,8 +32,8 @@ type PendingRequest = {
 
 export type DeviceSettings = {
   enabled: boolean
-  displayName: string
-  devicePath: string
+  displayName: string | undefined
+  devicePath: string | undefined
   [key: string]: any
 }
 
@@ -68,16 +68,20 @@ export class Device {
     app: ServerAPI,
     plugin: Plugin,
     address: string,
-    hostname?: string,
-    name?: string
+    hostname: string,
+    id?: string,
+    deviceSettings?: DeviceSettings
   ) {
     this.address = address
     this.app = app
     this.plugin = plugin
     this.hostname = hostname
-    this.name = name
     this.maxReconnectAttempts = -1
     this.shouldReconnect = true
+    this.id = id || null
+    if (deviceSettings) {
+      this.setDeviceSettings(deviceSettings)
+    }
   }
 
   setDeviceSettings(deviceSettings: DeviceSettings) {
