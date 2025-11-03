@@ -29,6 +29,7 @@ const start = (app: ServerAPI) => {
   let devices: { [key: string]: Device } = {}
   let browser: any
   let pollInterval: any = null
+  let connectTimeout: any = null
 
   const plugin: Plugin = {
     start: (properties: any) => {
@@ -53,19 +54,45 @@ const start = (app: ServerAPI) => {
           if (gen && Number(gen) >= 2) {
             let device = devices[data.addresses[0]]
             if (device) {
+              app.debug(
+                `ignoring known device ${device.id} at ${data.host}/${data.addresses[0]}`
+              )
               // already known device, ignore
               return
             }
+
+            app.debug(
+              `Discovered Shelly gen 2+ device at ${data.host}/${data.addresses[0]}`
+            )
 
             device = new Device(app, plugin, data.addresses[0], data.host)
             devices[device.address] = device
             try {
               await device.connect()
-              const props = getDeviceProps(device.id!)
-              if (props && props?.enabled !== false) {
-                device.setDeviceSettings(props)
+              const devProps = getDeviceProps(device.id!)
+              if (devProps && devProps?.enabled !== false) {
+                app.debug(
+                  `Found enabled settings for device ${device.id} at ${data.host}/${data.addresses[0]}`
+                )
+                device.setDeviceSettings(devProps)
               } else {
+                app.debug(
+                  `No enabled settings for device ${device.id} at ${data.host}/${data.addresses[0]}, disconnecting`
+                )
                 device.disconnect()
+              }
+              if (devProps) {
+                devProps.deviceName = device.name
+                devProps.deviceAddress = device.address
+                devProps.deviceHostname = device.hostname
+                app.savePluginOptions(properties, (error: any) => {
+                  if (error) {
+                    app.error(
+                      'Failed to save plugin options after device discovery'
+                    )
+                    app.error(error)
+                  }
+                })
               }
             } catch (error: any) {
               app.error(`Failed to connect to device ${device.id}`)
@@ -76,33 +103,42 @@ const start = (app: ServerAPI) => {
         }
       })
 
-      /*
       if (props) {
-        Object.keys(props).forEach((key) => {
-          if (key.startsWith('Device ID ')) {
-            const devProps = props[key]
-            const id = devProps.deviƒceId
-            if (devices[id] === undefined) {
-              devices[id] = new Device(
+        connectTimeout = setTimeout(() => {
+          Object.keys(props).forEach((key) => {
+            if (key.startsWith('Device ID ')) {
+              const devProps = props[key]
+              let device = Object.values(devices).find(
+                (d) => d.id === devProps.deviceId
+              )
+              if (device) {
+                return
+              }
+              const address = devProps.deviceAddress
+              device = new Device(
                 app,
                 plugin,
-                devProps,
-                devProps.deviceId,
                 devProps.deviceAddress,
                 devProps.deviceHostname,
-                devProps.deviceName
+                devProps.deviceId,
+                devProps
               )
+              app.debug(
+                `Did not get discovery for device ${device.id} at ${device.hostname}/${device.address}, connecting based on configured settings`
+              )
+              devices[address] = device
               if (devProps?.enabled === undefined || devProps?.enabled) {
-                devices[id].connect().catch((error) => {
-                  app.error(`Failed to connect to configured device ${id}`)
+                device.connect().catch((error) => {
+                  app.error(
+                    `Failed to connect to configured device ${device.id} ${address}`
+                  )
                   app.error(error)
                 })
               }
             }
-          }
-        })
+          })
+        }, 5000)
       }
-*/
 
       if ((plugin as any).createMockDevices) {
         const mockedDevices = mockDevices(app, plugin, getDeviceProps)
@@ -144,6 +180,10 @@ const start = (app: ServerAPI) => {
       if (browser) {
         browser.stop()
         browser = null
+      }
+      if (connectTimeout) {
+        clearTimeout(connectTimeout)
+        connectTimeout = null
       }
       if (pollInterval) {
         clearInterval(pollInterval)

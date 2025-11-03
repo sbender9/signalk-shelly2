@@ -224,6 +224,7 @@ export class Device {
     this.debug(`Initial device status retrieved successfully from ${this.id}`)
     this.debug(JSON.stringify(result, null, 2))
     this.getCapabilities(result)
+    this.registerForPuts()
     this.sendDeltas(result)
   }
 
