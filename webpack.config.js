@@ -1,7 +1,7 @@
 // const HtmlWebpackPlugin = require('html-webpack-plugin');
-const path = require('path');
+const path = require('path')
 
-const { ModuleFederationPlugin } = require('webpack').container;
+const { ModuleFederationPlugin } = require('webpack').container
 const { WatchIgnorePlugin } = require('webpack')
 
 //require('@signalk/server-admin-ui-dependencies')
@@ -18,38 +18,34 @@ module.exports = {
   },
   module: {
     rules: [
-        {
-            test: /\.js?$/,
-            loader: 'babel-loader',
-            exclude: /node_modules/,
-            options: {
-              presets: ['@babel/preset-react'],
-            },
-          },
-          {
+      {
+        test: /\.js?$/,
+        loader: 'babel-loader',
+        exclude: /node_modules/,
+        options: {
+          presets: ['@babel/preset-react']
+        }
+      },
+      {
         test: /\.jsx?$/,
         loader: 'babel-loader',
         exclude: /node_modules/,
         options: {
-          presets: ['@babel/preset-react'],
-        },
+          presets: ['@babel/preset-react']
+        }
       },
       {
         test: /\.css$/,
-        use: [
-          'style-loader',
-          'css-loader'
-        ]
+        use: ['style-loader', 'css-loader']
       },
       {
         test: /\.(png|svg|jpg|gif)$/,
-        loader:
-          'file-loader',
+        loader: 'file-loader',
         options: {
-          name: '[path][name].[ext]',
-        },
+          name: '[path][name].[ext]'
+        }
       }
-    ],
+    ]
   },
   plugins: [
     new ModuleFederationPlugin({
@@ -57,9 +53,10 @@ module.exports = {
       library: { type: 'var', name: packageJson.name.replace(/[-@/]/g, '_') },
       filename: 'remoteEntry.js',
       exposes: {
-        './PluginConfigurationPanel': './web/components/PluginConfigurationPanel',
+        './PluginConfigurationPanel':
+          './web/components/PluginConfigurationPanel'
       },
-      shared: [{ react: { singleton: false, strictVersion:true } }],
+      shared: [{ react: { singleton: false, strictVersion: true } }]
     }),
     new WatchIgnorePlugin({
       paths: [path.resolve(__dirname, 'public/')]
@@ -67,5 +64,5 @@ module.exports = {
     // new HtmlWebpackPlugin({
     //   template: './public/index.html',
     // }),
-  ],
-};
+  ]
+}
