@@ -19,9 +19,10 @@ const mdns = require('mdns-js')
 import { Device } from './device'
 import { getSupportedComponents } from './components'
 import mockDevices from './mockDevices'
+import { createChannel, createSession } from 'better-sse'
+import fs from 'fs'
 
 const SERVICE_NAME = 'shelly'
-const deviceKey = (device: any) => device.id
 
 const start = (app: ServerAPI) => {
   let props: any
@@ -33,12 +34,35 @@ const start = (app: ServerAPI) => {
   let pollInterval: any = null
   let connectTimeout: any = null
   let started = false
+  let restartPlugin: any = null
+  const channel = createChannel()
 
   const plugin: Plugin = {
-    start: (properties: any) => {
+    start: (properties: any, restartPluginParam) => {
+      restartPlugin = restartPluginParam
       props = properties
       started = true
-      deviceConfigs = props?.peripherals ?? []
+
+      if (Object.keys(props).length == 0) {
+        //empty config means initial startup. save defaults and enabled=true.
+        const json = {
+          configuration: { poll: 5000 },
+          enabled: true,
+          enableDebug: false
+        }
+        const appDataDirPath = app.getDataDirPath()
+        const jsonFile = appDataDirPath + '.json'
+        try {
+          fs.writeFileSync(jsonFile, JSON.stringify(json, null, 2))
+          props = json.configuration
+        } catch (err: any) {
+          console.log(`Error writing initial config: ${err.message} `)
+          console.log(err)
+        }
+      }
+
+      deviceConfigs = props?.devices ?? []
+      convertLegacySettings()
 
       browser = mdns.createBrowser(mdns.tcp(SERVICE_NAME))
 
@@ -74,12 +98,14 @@ const start = (app: ServerAPI) => {
             devices[device.address] = device
             try {
               await device.connect()
+              channel.broadcast(deviceToJSON(device), 'newDevice')
               const devProps = getDeviceProps(device.id!)
               if (devProps && devProps?.enabled !== false) {
                 app.debug(
                   `Found enabled settings for device ${device.id} at ${data.host}/${data.addresses[0]}`
                 )
                 device.setDeviceSettings(devProps)
+                await device.resendDeltas()
               } else {
                 app.debug(
                   `No enabled settings for device ${device.id} at ${data.host}/${data.addresses[0]}, disconnecting`
@@ -87,9 +113,9 @@ const start = (app: ServerAPI) => {
                 device.disconnect()
               }
               if (devProps) {
-                devProps.deviceName = device.name
-                devProps.deviceAddress = device.address
-                devProps.deviceHostname = device.hostname
+                devProps.name = device.name
+                devProps.address = device.address
+                devProps.hostname = device.hostname
                 app.savePluginOptions(properties, (error: any) => {
                   if (error) {
                     app.error(
@@ -110,36 +136,36 @@ const start = (app: ServerAPI) => {
 
       if (props) {
         connectTimeout = setTimeout(() => {
-          Object.keys(props).forEach((key) => {
-            if (key.startsWith('Device ID ')) {
-              const devProps = props[key]
-              let device = Object.values(devices).find(
-                (d) => d.id === devProps.deviceId
-              )
-              if (device) {
-                return
-              }
-              const address = devProps.deviceAddress
-              device = new Device(
-                app,
-                plugin,
-                devProps.deviceAddress,
-                devProps.deviceHostname,
-                devProps.deviceId,
-                devProps
-              )
-              app.debug(
-                `Did not get discovery for device ${device.id} at ${device.hostname}/${device.address}, connecting based on configured settings`
-              )
-              devices[address] = device
-              if (devProps?.enabled === undefined || devProps?.enabled) {
-                device.connect().catch((error) => {
-                  app.error(
-                    `Failed to connect to configured device ${device.id} ${address}`
-                  )
-                  app.error(error)
-                })
-              }
+          props.devices?.forEach((devProps: any) => {
+            let device = Object.values(devices).find(
+              (d) => d.id === devProps.id
+            )
+            if (device) {
+              return
+            }
+            const address = devProps.address
+            device = new Device(
+              app,
+              plugin,
+              devProps.address,
+              devProps.hostname,
+              devProps.id,
+              devProps,
+              devProps.model
+            )
+            device.name = devProps.name
+            app.debug(
+              `Did not get discovery for device ${device.id} at ${device.hostname}/${device.address}, connecting based on configured settings`
+            )
+            devices[address] = device
+            channel.broadcast(deviceToJSON(device), 'newDevice')
+            if (devProps?.enabled === undefined || devProps?.enabled) {
+              device.connect().catch((error) => {
+                app.error(
+                  `Failed to connect to configured device ${device.id} ${address}`
+                )
+                app.error(error)
+              })
             }
           })
         }, 5000)
@@ -149,18 +175,23 @@ const start = (app: ServerAPI) => {
         const mockedDevices = mockDevices(app, plugin, getDeviceProps)
         mockedDevices.forEach(({ device, status }) => {
           devices[device.address] = device
+          device.connected = true
           device.authFailed = false
           device.getCapabilities(status)
           device.registerForPuts()
           device.sendDeltas(status)
+          channel.broadcast(deviceToJSON(device), 'newDevice')
         })
       }
 
       if (props?.poll > 0) {
+        app.debug(`Setting poll interval to ${props.poll} ms`)
         pollInterval = setInterval(() => {
           Object.values(devices).forEach(async (device: Device) => {
+            app.debug(`Trying Polling device ${device.id}`)
             const devProps = getDeviceProps(device.id!)
             if (devProps?.enabled === true) {
+              app.debug(`Polling device ${device.id}`)
               try {
                 await device.poll()
               } catch (error: any) {
@@ -423,18 +454,278 @@ const start = (app: ServerAPI) => {
         res.status(200).json(json)
       })
 
-      router.get('/getSensors', (_req: any, res: any) => {
-        const t = sensorsToJSON()
+      router.get('/getDevices', (_req: any, res: any) => {
+        const t = devicesToJSON()
         res.status(200).json(t)
+      })
+
+      router.post('/updateDeviceConfig', async (req: any, res: any) => {
+        const device = Object.values(devices).find(
+          (d: Device) => d.id === req.body.id
+        )
+        const i = deviceConfigs.findIndex((p) => p.id == req.body.id)
+        if (i < 0) {
+          if (!props.devices) {
+            props.devices = []
+          }
+          props.devices.push(req.body)
+        } else {
+          props.devices[i] = req.body
+        }
+        deviceConfigs = props.devices
+        app.savePluginOptions(props, async () => {
+          res.status(200).json({ message: 'Devices updated' })
+          if (device) {
+            device.setDeviceSettings(req.body)
+            try {
+              if (device.connected) {
+                device.disconnect()
+              }
+
+              if (req.body.enabled) {
+                await device.connect()
+              }
+            } catch (e: any) {
+              app.error(e)
+            }
+            channel.broadcast(deviceToJSON(device), 'deviceChanged')
+          }
+        })
+      })
+
+      router.post('/removeDeviceConfig', async (req: any, res: any) => {
+        const device = Object.values(devices).find(
+          (d: Device) => d.id === req.body.id
+        )
+        if (!device) {
+          res.status(404).json({ message: 'Device not found' })
+          return
+        }
+        const i = deviceConfigs.findIndex((p) => p.id == req.body.id)
+        if (i >= 0) {
+          deviceConfigs.splice(i, 1)
+        }
+
+        if (device.connected) device.disconnect()
+
+        app.savePluginOptions(props, () => {
+          res.status(200).json({ message: 'Devices updated' })
+          channel.broadcast({}, 'resetDevices')
+        })
+      })
+
+      router.post('/updateBaseData', async (req: any, res: any) => {
+        Object.assign(props, req.body)
+        app.savePluginOptions(props, () => {
+          res.status(200).json({ message: 'Plugin updated' })
+          channel.broadcast({}, 'pluginRestarted')
+          restartPlugin(props)
+        })
+      })
+
+      router.get('/sse', async (req: any, res: any) => {
+        const session = await createSession(req, res)
+        channel.register(session)
+        req.on('close', () => {
+          channel.deregister(session)
+        })
       })
     }
   }
 
-  function getDeviceProps(id: string) {
-    return props[`Device ID ${id}`]
+  function deviceToJSON(device: Device) {
+    const settings = getDeviceProps(device.id!)
+    return {
+      id: device.id,
+      address: device.address,
+      hostname: device.hostname,
+      model: device.model,
+      gen: device.gen,
+      name: device.name,
+      connected: device.connected,
+      authFailed: device.authFailed,
+      triedAuth: device.triedAuth,
+      schema: getDeviceSchema(device),
+      settings: settings || {},
+      settingsCopy: settings || {}
+    }
   }
 
-  ;(plugin as any).createMockDevices = false
+  function devicesToJSON() {
+    const list: any[] = []
+    Object.values(devices).forEach((device) => {
+      if (device.id) {
+        const settings = getDeviceProps(device.id)
+        list.push({
+          id: device.id,
+          address: device.address,
+          hostname: device.hostname,
+          model: device.model,
+          gen: device.gen,
+          name: device.name,
+          connected: device.connected,
+          authFailed: device.authFailed,
+          triedAuth: device.triedAuth,
+          schema: getDeviceSchema(device),
+          settings: settings || {},
+          settingsCopy: settings || {}
+        })
+      }
+    })
+    return list
+  }
+
+  function convertLegacySettings() {
+    let changed = false
+    Object.keys(props).forEach((key) => {
+      if (key.startsWith('Device ID ')) {
+        const oldProps = props[key]
+        const newProps: any = {}
+        newProps.id = oldProps.deviceId
+        delete oldProps.deviceId
+        newProps.address = oldProps.deviceAddress
+        delete oldProps.deviceAddress
+        newProps.hostname = oldProps.deviceHostname
+        delete oldProps.deviceHostname
+        newProps.name = oldProps.deviceName
+        delete oldProps.deviceName
+        newProps.model = oldProps.deviceModel
+        delete oldProps.deviceModel
+        delete oldProps.deviceGeneration
+
+        Object.assign(newProps, oldProps)
+
+        delete props[key]
+        if (!props.devices) {
+          props.devices = []
+        }
+        props.devices.push(newProps)
+        changed = true
+      }
+    })
+    if (changed) {
+      app.savePluginOptions(props, () => {})
+    }
+  }
+
+  function getDeviceSchema(device: Device) {
+    const schema: any = {
+      type: 'object',
+      properties: {
+        enabled: {
+          type: 'boolean',
+          title: 'Enabled',
+          default: true
+        },
+        devicePath: {
+          type: 'string',
+          title: 'Device Path',
+          default: device.getDevicePath(),
+          description: `Used to generate the path name, default`
+        },
+        displayName: {
+          type: 'string',
+          title: 'Display Name (meta)',
+          default: device.name || ''
+        },
+        password: {
+          type: 'string',
+          title: 'Password',
+          description:
+            'The password for the device, leave empty if no password is set'
+        }
+      }
+    }
+
+    getSupportedComponents().forEach((component) => {
+      const count = device.components[component]?.length || 0
+      if (count > 1) {
+        for (let i = 0; i < count; i++) {
+          const key = `${component}${i}`
+          const defaultPath = i.toString()
+          const description =
+            'Used to generate the path name, ie. electrical.switches.${bankPath}.${switchPath}.state'
+
+          schema.properties[key] = {
+            type: 'object',
+            properties: {
+              path: {
+                type: 'string',
+                title: 'Path',
+                default: defaultPath,
+                description
+              },
+              displayName: {
+                type: 'string',
+                title: 'Display Name (meta)'
+              },
+              enabled: {
+                type: 'boolean',
+                title: 'Enabled',
+                default: true
+              }
+            }
+          }
+        }
+      }
+      if (count > 0 && (component === 'rgb' || component === 'rgbw')) {
+        const required = ['name', 'red', 'green', 'blue', 'bright']
+        if (component === 'rgbw') {
+          required.push('white')
+        }
+        schema.properties.presets = {
+          title: 'Presets',
+          type: 'array',
+          items: {
+            type: 'object',
+            required,
+            properties: {
+              name: {
+                type: 'string',
+                title: 'Name'
+              },
+              red: {
+                type: 'number',
+                title: 'Red',
+                default: 255
+              },
+              green: {
+                type: 'number',
+                title: 'Green',
+                default: 255
+              },
+              blue: {
+                type: 'number',
+                title: 'Blue',
+                default: 255
+              },
+              bright: {
+                type: 'number',
+                title: 'Brightness',
+                description:
+                  'Number between 1-100. Set to 0 to preserve current brightness',
+                default: 100
+              }
+            }
+          }
+        }
+        if (component === 'rgbw') {
+          schema.properties.presets.items.properties.white = {
+            type: 'number',
+            title: 'White',
+            default: 255
+          }
+        }
+      }
+    })
+    return schema
+  }
+
+  function getDeviceProps(id: string) {
+    return props.devices?.find((d: any) => d.id === id)
+  }
+
+  ;(plugin as any).createMockDevices = true
 
   return plugin
 }

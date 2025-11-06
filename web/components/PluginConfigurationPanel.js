@@ -7,16 +7,6 @@ import { useEffect, useState } from 'react'
 import { Button, Grid, Snackbar } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 
-import {
-  BluetoothConnected,
-  SignalCellular1Bar,
-  SignalCellular2Bar,
-  SignalCellular3Bar,
-  SignalCellular4Bar,
-  SignalCellular0Bar,
-  SignalCellularConnectedNoInternet0Bar
-} from '@material-ui/icons'
-
 const log = (type) => console.log.bind(console, type)
 
 import ListGroup from 'react-bootstrap/ListGroup'
@@ -47,13 +37,7 @@ export function BTConfig(props) {
               {
                 'ui:columns': {
                   className: 'col-xs-4',
-                  children: [
-                    'adapter',
-                    'transport',
-                    'duplicateData',
-                    'discoveryTimeout',
-                    'discoveryInterval'
-                  ]
+                  children: ['poll']
                 }
               }
             ]
@@ -79,10 +63,9 @@ export function BTConfig(props) {
   const [uiSchema, setUISchema] = useState(_uiSchema)
 
   const [sensorData, setSensorData] = useState()
-  const [sensorClassChanged, setSensorClassChanged] = useState(false)
 
   const [enableSchema, setEnableSchema] = useState(true)
-  const [sensorMap, setSensorMap] = useState(new Map())
+  const [deviceMap, setDeviceMap] = useState(new Map())
 
   const [progress, setProgress] = useState({
     progress: 0,
@@ -126,30 +109,15 @@ export function BTConfig(props) {
     }
     return result
   }
-  async function getSensors() {
-    const response = await fetchJSONData('getSensors')
+  async function getDevices() {
+    const response = await fetchJSONData('getDevices')
     if (response.status != 200) {
       throw new Error(
-        `Unable get sensor data: ${response.statusText} (${response.status}) `
+        `Unable get device data: ${response.statusText} (${response.status}) `
       )
     }
     const json = await response.json()
 
-    return json
-  }
-
-  async function getSensorInfo(mac, sensorClass) {
-    const response = await fetchJSONData('getSensorInfo', {
-      mac_address: mac,
-      class: sensorClass
-    })
-    if (response.status != 200) {
-      debugger
-      throw new Error(
-        `Unable get sensor info: ${response.statusText} (${response.status}) `
-      )
-    }
-    const json = await response.json()
     return json
   }
 
@@ -182,47 +150,47 @@ export function BTConfig(props) {
   }
 
   function updateSensorData(data) {
-    sendJSONData('updateSensorData', data).then((response) => {
+    sendJSONData('updateDeviceConfig', data).then((response) => {
       if (response.status != 200) {
         throw new Error(response.statusText)
       }
-      setSensorMap((sm) => {
-        sm.delete(data.mac_address)
-        return new Map(sm)
+      /*
+      setDeviceMap((dm) => {
+        dm.delete(data.id)
+        return new Map(dm)
       })
+        */
       setSchema({})
     })
   }
 
-  function undoChanges(mac) {
-    sensorMap.get(mac)._changesMade = false
-    sensorMap.get(mac).config = JSON.parse(
-      JSON.stringify(sensorMap.get(mac).configCopy)
+  function undoChanges(id) {
+    deviceMap.get(id)._changesMade = false
+    deviceMap.get(id).settings = JSON.parse(
+      JSON.stringify(deviceMap.get(id).settingsCopy)
     )
-    setSensorData(sensorMap.get(mac).config)
+    setSensorData(deviceMap.get(id).settings)
   }
 
-  function removeSensorData(mac) {
+  function removeDeviceConfig(id) {
     try {
-      sendJSONData('removeSensorData', { mac_address: mac }).then(
-        (response) => {
-          if (response.status != 200) {
-            throw new Error(response.statusText)
-          }
+      sendJSONData('removeDeviceConfig', { id: id }).then((response) => {
+        if (response.status != 200) {
+          throw new Error(response.statusText)
         }
-      )
-      setSensorMap((sm) => {
-        sm.delete(mac)
-        return new Map(sm)
+      })
+      setDeviceMap((dm) => {
+        dm.delete(id)
+        return new Map(dm)
       })
       setSchema({})
     } catch {
-      ;(e) => setError(`Couldn't remove ${mac}: ${e}`)
+      ;(e) => setError(`Couldn't remove ${id}: ${e}`)
     }
   }
 
   function updateBaseData(data) {
-    setSensorMap(new Map())
+    setDeviceMap(new Map())
     //setSensorList({})
     sendJSONData('updateBaseData', data).then((response) => {
       if (response.status != 200) {
@@ -237,23 +205,23 @@ export function BTConfig(props) {
     let eventSource = null
     fetchJSONData('getPluginState')
       .then(async (response) => {
-        function newSensorEvent(event) {
+        function newDeviceEvent(event) {
           let json = JSON.parse(event.data)
-          console.log(`New sensor: ${json.info.mac}`)
-          setSensorMap((_sm) => {
+          console.log(`New device: ${JSON.stringify(json.id)}`)
+          setDeviceMap((_sm) => {
             //if (!_sm.has(json.info.mac))
-            _sm.set(json.info.mac, json)
+            _sm.set(json.id, json)
 
             return new Map(_sm)
           })
         }
-        function sensorChangedEvent(event) {
-          console.log('sensorchanged')
+        function deviceChangedEvent(event) {
+          console.log('devicechanged')
           const json = JSON.parse(event.data)
           console.log(json)
-          setSensorMap((_sm) => {
-            const sensor = _sm.get(json.mac)
-            if (sensor) Object.assign(sensor.info, json)
+          setDeviceMap((_sm) => {
+            const sensor = _sm.get(json.id)
+            if (sensor) Object.assign(sensor, json)
             return new Map(_sm)
           })
         }
@@ -263,16 +231,23 @@ export function BTConfig(props) {
           throw new Error('unable to get plugin state')
         }
         const json = await response.json()
-        eventSource = new EventSource('/plugins/bt-sensors-plugin-sk/sse', {
+        eventSource = new EventSource('/plugins/signalk-shelly2/sse', {
           withCredentials: true
         })
 
-        eventSource.addEventListener('newsensor', (event) => {
-          newSensorEvent(event)
+        eventSource.addEventListener('resetDevices', (event) => {
+          ;(async () => {
+            const devices = await getDevices()
+            setDeviceMap(new Map(devices.map((device) => [device.id, device])))
+          })()
         })
 
-        eventSource.addEventListener('sensorchanged', (event) => {
-          sensorChangedEvent(event)
+        eventSource.addEventListener('newDevice', (event) => {
+          newDeviceEvent(event)
+        })
+
+        eventSource.addEventListener('deviceChanged', (event) => {
+          deviceChangedEvent(event)
         })
 
         eventSource.addEventListener('progress', (event) => {
@@ -286,12 +261,9 @@ export function BTConfig(props) {
         })
 
         setPluginState(json.state)
-
         ;(async () => {
-          const sensors = await getSensors()
-          setSensorMap(
-            new Map(sensors.map((sensor) => [sensor.info.mac, sensor]))
-          )
+          const devices = await getDevices()
+          setDeviceMap(new Map(devices.map((device) => [device.id, device])))
         })()
       })
       .catch((e) => {
@@ -302,42 +274,6 @@ export function BTConfig(props) {
       eventSource.close()
     }
   }, [])
-
-  useEffect(() => {
-    if (!sensorClassChanged) return
-    if (!(sensorData && sensorMap)) return
-
-    const _sensor = sensorMap.get(sensorData.mac_address)
-    if (
-      _sensor &&
-      schema &&
-      sensorData &&
-      Object.hasOwn(sensorData, 'params')
-    ) {
-      if (
-        _sensor.info.class == 'UNKNOWN' &&
-        sensorData.params.sensorClass &&
-        sensorData.params.sensorClass != 'UNKNOWN'
-      ) {
-        setEnableSchema(false)
-        setSnackbarMessage(
-          `Please wait. Fetching schema for ${sensorData.params.sensorClass}...`
-        )
-        getSensorInfo(sensorData.mac_address, sensorData.params.sensorClass)
-          .then((json) => {
-            setSchema(json.schema)
-          })
-          .catch((e) => {
-            alert(e.message)
-          })
-          .finally(() => {
-            setSnackbarMessage('')
-            setEnableSchema(true)
-            setSensorClassChanged(false)
-          })
-      }
-    }
-  }, [sensorClassChanged])
 
   useEffect(() => {
     if (snackbarMessage == '') setSnackbarOpen(false)
@@ -370,35 +306,16 @@ export function BTConfig(props) {
     }
   }, [pluginState])
 
-  function confirmDelete(mac) {
-    const sensor = sensorMap.get(mac)
+  function confirmDelete(id) {
+    const sensor = deviceMap.get(id)
     const result =
       !hasConfig(sensor) ||
-      window.confirm(`Delete configuration for ${sensor.info.name}?`)
-    if (result) removeSensorData(mac)
+      window.confirm(`Delete configuration for ${sensor.id}?`)
+    if (result) removeDeviceConfig(id)
   }
 
-  function signalStrengthIcon(sensor) {
-    if (sensor.info.connected) return <BluetoothConnected />
-
-    if (
-      sensor.info.lastContactDelta == null ||
-      sensor.info.lastContactDelta > sensor.config.discoveryTimeout
-    )
-      return <SignalCellularConnectedNoInternet0Bar />
-
-    if (sensor.info.signalStrength > 80) return <SignalCellular4Bar />
-
-    if (sensor.info.signalStrength > 60) return <SignalCellular3Bar />
-
-    if (sensor.info.signalStrength > 40) return <SignalCellular2Bar />
-
-    if (sensor.info.signalStrength > 20) return <SignalCellular1Bar />
-
-    return <SignalCellular0Bar />
-  }
   function hasConfig(sensor) {
-    return Object.keys(sensor.configCopy).length > 0
+    return Object.keys(sensor.settingsCopy).length > 0
   }
 
   function createListGroupItem(sensor) {
@@ -407,61 +324,51 @@ export function BTConfig(props) {
       <ListGroupItem
         action
         onClick={() => {
-          sensor.config.mac_address = sensor.info.mac
+          sensor.settings.id = sensor.id
+          sensor.settings.address = sensor.address
+          sensor.settings.hostname = sensor.hostname
+          sensor.settings.name = sensor.name
+          sensor.settings.model = sensor.model
           setSchema(sensor.schema)
-          setSensorData(sensor.config)
+          setSensorData(sensor.settings)
         }}
       >
         <div
           class="d-flex justify-content-between align-items-center"
           style={config ? { fontWeight: 'normal' } : { fontStyle: 'italic' }}
         >
-          {`${sensor._changesMade ? '*' : ''}${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)}`}
+          {`${sensor._changesMade ? '*' : ''}${sensor.model} ${sensor.name ?? sensor.hostname} ID: ${sensor.id}`}
           <div class="d-flex justify-content-between ">
-            {`${sensor.info.state} ${sensor.info.error ? ' (ERROR)' : ''}`}
-            <div class="d-flex justify-content-between ">
-              {signalStrengthIcon(sensor)}
-            </div>
+            {`Connected: ${sensor.connected} ${sensor.error ? ' (ERROR)' : ''}`}
           </div>
         </div>
       </ListGroupItem>
     )
   }
 
-  function devicesInDomain(domain) {
-    return Array.from(sensorMap.entries()).filter(
-      (entry) => entry[1].info.domain === domain
-    )
-  }
-
-  function ifNullNaN(value) {
-    return value == null ? NaN : value
-  }
-
   function getTabs() {
-    const sensorDomains = [
-      ...new Set(
-        sensorMap.entries().map((entry) => {
-          return entry[1].info.domain
-        })
-      )
-    ].sort()
-    const cd = Array.from(sensorMap.entries()).filter((entry) =>
+    console.log('loading tabs')
+    const cd = Array.from(deviceMap.entries()).filter((entry) =>
       hasConfig(entry[1])
+    )
+    const notConfigured = Array.from(deviceMap.entries()).filter(
+      (entry) => !hasConfig(entry[1])
     )
     let sensorList = {}
     sensorList['_configured'] =
       cd.length == 0
-        ? 'Select a device from its domain tab (Electrical etc.) and configure it.'
+        ? 'Select a device from Unconfigured and configure it.'
         : cd.map((entry) => {
-            return createListGroupItem(sensorMap.get(entry[0]))
+            console.log(`configured devices: ${entry[0]}`)
+            return createListGroupItem(deviceMap.get(entry[0]))
           })
 
-    sensorDomains.forEach((d) => {
-      sensorList[d] = devicesInDomain(d).map((entry) => {
-        return createListGroupItem(sensorMap.get(entry[0]))
-      })
-    })
+    sensorList['_unconfigured'] =
+      notConfigured.length == 0
+        ? 'No Unconfigured Devices Found'
+        : notConfigured.map((entry) => {
+            return createListGroupItem(deviceMap.get(entry[0]))
+          })
 
     return Object.keys(sensorList).map((domain) => {
       return getTab(domain, sensorList[domain])
@@ -481,10 +388,6 @@ export function BTConfig(props) {
         </ListGroup>
       </Tab>
     )
-  }
-
-  function openInNewTab(url) {
-    window.open(url, '_blank', 'noreferrer')
   }
 
   if (pluginState == 'stopped' || pluginState == 'unknown')
@@ -564,19 +467,19 @@ export function BTConfig(props) {
               validator={validator}
               uiSchema={uiSchema}
               onChange={(e, id) => {
-                const s = sensorMap.get(e.formData.mac_address)
+                const s = deviceMap.get(e.formData.id)
                 if (s) {
                   s._changesMade = true
                   s.config = e.formData
                   setSensorData(e.formData)
                 }
-
-                if (id == 'root_params_sensorClass') {
-                  setSensorClassChanged(true)
-                }
               }}
               onSubmit={({ formData }, e) => {
                 updateSensorData(formData)
+                const s = deviceMap.get(formData.id)
+                if (s) {
+                  s._changesMade = false
+                }
                 alert('Changes saved')
               }}
               onError={log('errors')}
@@ -589,7 +492,7 @@ export function BTConfig(props) {
                 <Button
                   variant="contained"
                   onClick={() => {
-                    undoChanges(sensorData.mac_address)
+                    undoChanges(sensorData.id)
                   }}
                 >
                   Undo
@@ -597,7 +500,7 @@ export function BTConfig(props) {
                 <Button
                   variant="contained"
                   color="secondary"
-                  onClick={(e) => confirmDelete(sensorData.mac_address)}
+                  onClick={(e) => confirmDelete(sensorData.id)}
                 >
                   Delete
                 </Button>

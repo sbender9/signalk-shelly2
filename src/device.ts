@@ -70,7 +70,8 @@ export class Device {
     address: string,
     hostname: string,
     id?: string,
-    deviceSettings?: DeviceSettings
+    deviceSettings?: DeviceSettings,
+    model?: string
   ) {
     this.address = address
     this.app = app
@@ -79,6 +80,7 @@ export class Device {
     this.maxReconnectAttempts = -1
     this.shouldReconnect = true
     this.id = id || null
+    this.model = model || null
     if (deviceSettings) {
       this.setDeviceSettings(deviceSettings)
     }
@@ -126,6 +128,8 @@ export class Device {
     this.shouldReconnect = true
     this.reconnectAttempts = 0
     this.isReconnecting = false
+    this.sentStaticDeltas = false
+    this.sentMeta = false
 
     this.debug(`Connecting to device at ${this.address}`)
     this.ws = await this.createWebSocketConnection()
@@ -489,6 +493,11 @@ export class Device {
     return this.deviceSettings
       ? this.deviceSettings[`${component}${relay}`]
       : undefined
+  }
+
+  async resendDeltas() {
+    const result = await this.send('Shelly.GetStatus')
+    this.sendDeltas(result)
   }
 
   sendDeltas(status: any) {
