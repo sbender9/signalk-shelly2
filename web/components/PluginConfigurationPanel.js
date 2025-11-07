@@ -13,7 +13,7 @@ import ListGroup from 'react-bootstrap/ListGroup'
 import Tabs from 'react-bootstrap/Tabs'
 import Tab from 'react-bootstrap/Tab'
 
-import { ListGroupItem } from 'react-bootstrap'
+import { ListGroupItem, Row, Col } from 'react-bootstrap'
 
 import ProgressBar from 'react-bootstrap/ProgressBar'
 
@@ -321,9 +321,9 @@ export function BTConfig(props) {
   function createListGroupItem(sensor) {
     const config = hasConfig(sensor)
     return (
-      <ListGroupItem
+      <ListGroupItem className="d-flex justify-content-between"
         action
-        onClick={() => {
+        onClick={() => {  
           sensor.settings.id = sensor.id
           sensor.settings.address = sensor.address
           sensor.settings.hostname = sensor.hostname
@@ -333,15 +333,11 @@ export function BTConfig(props) {
           setSensorData(sensor.settings)
         }}
       >
-        <div
-          class="d-flex justify-content-between align-items-center"
-          style={config ? { fontWeight: 'normal' } : { fontStyle: 'italic' }}
-        >
-          {`${sensor._changesMade ? '*' : ''}${sensor.model} ${sensor.name ?? sensor.hostname} ID: ${sensor.id}`}
-          <div class="d-flex justify-content-between ">
-            {`Connected: ${sensor.connected} ${sensor.error ? ' (ERROR)' : ''}`}
-          </div>
-        </div>
+            <div style={{ flex: 1 }}>{`${sensor._changesMade ? '*' : ''}`}{sensor.model}</div>
+            <div style={{ flex: 1 }}>{sensor.name ?? ''}</div>
+            <div style={{ flex: 1 }}>{sensor.address}</div>
+            <div style={{ flex: 1 }}>{sensor.id}</div>
+            <div style={{ flex: 1 }}>{`${sensor.connected ? 'Yes' : 'No'}`}</div>
       </ListGroupItem>
     )
   }
@@ -384,6 +380,13 @@ export function BTConfig(props) {
         title={`${title.charAt(0).toUpperCase()}${title.slice(1)}${typeof sensorList == 'string' ? '' : ' (' + sensorList.length + ')'}`}
       >
         <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <ListGroupItem className="d-flex justify-content-between font-weight-bold">
+            <div style={{ flex: 1 }}>Model</div>
+            <div style={{ flex: 1 }}>Name</div>
+            <div style={{ flex: 1 }}>Address</div>
+            <div style={{ flex: 1 }}>Shelly ID</div>
+            <div style={{ flex: 1 }}>Connected</div>
+          </ListGroupItem>
           {sensorList}
         </ListGroup>
       </Tab>
@@ -480,7 +483,7 @@ export function BTConfig(props) {
                 if (s) {
                   s._changesMade = false
                 }
-                alert('Changes saved')
+                //alert('Changes saved')
               }}
               onError={log('errors')}
               formData={sensorData}
