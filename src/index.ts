@@ -170,7 +170,7 @@ const start = (app: ServerAPI) => {
         }, 5000)
       }
 
-      if ((plugin as any).createMockDevices) {
+      if ( props.createMockDevices) {
         const mockedDevices = mockDevices(app, plugin, getDeviceProps)
         mockedDevices.forEach(({ device, status }) => {
           devices.push(device)
@@ -350,6 +350,28 @@ const start = (app: ServerAPI) => {
     }
   }
 
+  function getComponentsInfo(device: Device) {
+    const res: any[] = []
+    const deviceProps = getDeviceProps(device.id!)
+    getSupportedComponents().forEach((componentName) => {
+      const components = device.components[componentName]
+      const count = components?.length || 0
+      if (count > 1) {
+        for (let i = 0; i < count; i++) {
+          res.push({
+            key:  `${componentName}${i}`,
+            name: componentName,
+            id: i,
+            settings: deviceProps
+              ? deviceProps[`${componentName}${i}`] || {}
+              : {}
+          })
+        }
+      }
+    })
+    return res
+  }
+
   function deviceToJSON(device: Device) {
     const settings = getDeviceProps(device.id!)
     return {
@@ -362,9 +384,11 @@ const start = (app: ServerAPI) => {
       connected: device.connected,
       authFailed: device.authFailed,
       triedAuth: device.triedAuth,
-      schema: getDeviceSchema(device),
+      isConfigured: settings ? true : false,
       settings: settings || {},
-      settingsCopy: settings || {}
+      settingsCopy: settings || {},
+      defaultPath: settings ? undefined : device.getDevicePath(),
+      components: getComponentsInfo(device)
     }
   }
 
@@ -372,21 +396,7 @@ const start = (app: ServerAPI) => {
     const list: any[] = []
     devices.forEach((device) => {
       if (device.id) {
-        const settings = getDeviceProps(device.id)
-        list.push({
-          id: device.id,
-          address: device.address,
-          hostname: device.hostname,
-          model: device.model,
-          gen: device.gen,
-          name: device.name,
-          connected: device.connected,
-          authFailed: device.authFailed,
-          triedAuth: device.triedAuth,
-          schema: getDeviceSchema(device),
-          settings: settings || {},
-          settingsCopy: settings || {}
-        })
+        list.push(deviceToJSON(device))
       }
     })
     return list
@@ -396,7 +406,11 @@ const start = (app: ServerAPI) => {
     let changed = false
     Object.keys(props).forEach((key) => {
       if (key.startsWith('Device ID ')) {
-        const oldProps = props[key]
+        const oldProps = JSON.parse(JSON.stringify(props[key]))
+        if ( getDeviceProps(oldProps.deviceId) ) {
+          // already have this device under new format
+          return
+        }
         const newProps: any = {}
         newProps.id = oldProps.deviceId
         delete oldProps.deviceId
@@ -546,7 +560,7 @@ const start = (app: ServerAPI) => {
     return devices.find((d) => d.address === address)
   }
 
-  ;(plugin as any).createMockDevices = false
+  //;(plugin as any).createMockDevices = true
 
   return plugin
 }

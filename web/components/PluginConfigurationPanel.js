@@ -1,4 +1,4 @@
-import Form from '@rjsf/core'
+import {default as RjsfForm} from '@rjsf/core'
 import validator from '@rjsf/validator-ajv8'
 import ReactHtmlParser from 'react-html-parser'
 import React from 'react'
@@ -13,7 +13,9 @@ import ListGroup from 'react-bootstrap/ListGroup'
 import Tabs from 'react-bootstrap/Tabs'
 import Tab from 'react-bootstrap/Tab'
 
-import { ListGroupItem, Row, Col } from 'react-bootstrap'
+import { ListGroupItem, Row, Col  } from 'react-bootstrap'
+import { Input, Label, FormGroup, Form, Card, CardHeader, CardBody, FormText  } from 'reactstrap'
+
 
 export function BTConfig(props) {
   const _uiSchema = {
@@ -56,9 +58,6 @@ export function BTConfig(props) {
   const [baseSchema, setBaseSchema] = useState({})
 
   const [baseData, setBaseData] = useState({})
-
-  const [schema, setSchema] = useState({})
-  const [uiSchema, setUISchema] = useState(_uiSchema)
 
   const [sensorData, setSensorData] = useState()
 
@@ -140,16 +139,15 @@ export function BTConfig(props) {
         return new Map(dm)
       })
         */
-      setSchema({})
+      //setSchema({})
     })
   }
 
   function undoChanges(id) {
-    deviceMap.get(id)._changesMade = false
-    deviceMap.get(id).settings = JSON.parse(
-      JSON.stringify(deviceMap.get(id).settingsCopy)
-    )
-    setSensorData(deviceMap.get(id).settings)
+    const device = deviceMap.get(id)
+    device._changesMade = false
+    device.settings = JSON.parse(JSON.stringify(device.settingsCopy))
+    setSensorData({ ...device.settings })
   }
 
   function removeDeviceConfig(id) {
@@ -163,7 +161,8 @@ export function BTConfig(props) {
         dm.delete(id)
         return new Map(dm)
       })
-      setSchema({})
+      //setSchema({})
+      setSensorData(null)
     } catch {
       ;(e) => setError(`Couldn't remove ${id}: ${e}`)
     }
@@ -179,6 +178,16 @@ export function BTConfig(props) {
         )
       }
     })
+  }
+
+  function handleInputChange(fieldName, value) {
+    const updatedSensorData = { ...sensorData, [fieldName]: value }
+    setSensorData(updatedSensorData)
+    const s = deviceMap.get(sensorData.id)
+    if (s) {
+      s._changesMade = true
+      s.settings[fieldName] = value
+    }
   }
 
   useEffect(() => {
@@ -281,8 +290,8 @@ export function BTConfig(props) {
     if (result) removeDeviceConfig(id)
   }
 
-  function hasConfig(sensor) {
-    return Object.keys(sensor.settingsCopy).length > 0
+  function hasConfig(device) {
+    return device.isConfigured
   }
 
   function createListGroupItem(sensor) {
@@ -292,13 +301,17 @@ export function BTConfig(props) {
         className="d-flex justify-content-between"
         action
         onClick={() => {
-          sensor.settings.id = sensor.id
-          sensor.settings.address = sensor.address
-          sensor.settings.hostname = sensor.hostname
-          sensor.settings.name = sensor.name
-          sensor.settings.model = sensor.model
-          setSchema(sensor.schema)
-          setSensorData(sensor.settings)
+          const settings = {
+            ...sensor.settings,
+            id: sensor.id,
+            address: sensor.address,
+            hostname: sensor.hostname,
+            name: sensor.name,
+            model: sensor.model,
+            devicePath: sensor.settings.devicePath || sensor.defaultPath,
+            enabled: sensor.settings?.enabled !== undefined ? sensor.settings.enabled : true
+          }
+          setSensorData(settings)
         }}
       >
         <div style={{ flex: 1 }}>
@@ -364,6 +377,92 @@ export function BTConfig(props) {
     )
   }
 
+  function getCommonForm() {
+    console.log(`getting common form for sensorData: ${JSON.stringify(sensorData)}`)
+    return (
+      <div className={classes.root}>
+        <Card>
+          <CardHeader className="d-flex justify-content-between align-items-center py-2" style={{ cursor: 'pointer' }}>Device</CardHeader>
+          <CardBody>
+            <FormGroup row>
+              <Col md="2">
+                <Label htmlFor="deviceEnabled">Enabled</Label>
+              </Col>
+              <Col xs="12" md="10">
+              <Label className="switch switch-text switch-primary mb-0 me-3">
+                <Input
+                  type="checkbox"
+                  id="deviceEnabled"
+                  name="deviceEnabled"
+                  className="switch-input"
+                  checked={sensorData?.enabled}
+                  onChange={(e) => handleInputChange('enabled', e.target.checked)}
+                />
+                <span className="switch-label" data-on="On" data-off="Off" />
+                <span className="switch-handle" />
+              </Label>
+              </Col>
+            </FormGroup>
+            <FormGroup row>
+              <Col md="2">
+                <Label htmlFor="devicePath">Path</Label>
+              </Col>
+              <Col xs="12" md="10">
+                <Input
+                  size="50"
+                  style={{ width: 'auto' }}
+                  type="text"
+                  name="devicePath"
+                  value={sensorData?.devicePath || sensorData?.defaultPath || ''}
+                  onChange={(e) => handleInputChange('devicePath', e.target.value)}
+                />
+                <FormText color="muted">
+                  Signal K path to publish data to.
+                </FormText>
+              </Col>
+            </FormGroup>
+            <FormGroup row>
+              <Col md="2">
+                <Label htmlFor="displayName">Display Name (meta)</Label>
+              </Col>
+              <Col xs="12" md="10">
+                <Input
+                  size="50"
+                  style={{ width: 'auto' }}
+                  type="text"
+                  name="displayName"
+                  value={sensorData?.displayName || sensorData?.name|| ''}
+                  onChange={(e) => handleInputChange('displayName', e.target.value)}
+                />
+                <FormText color="muted">
+                  Display name meta data for the device.
+                </FormText>
+              </Col>
+            </FormGroup>
+            <FormGroup row>
+              <Col md="2">
+                <Label htmlFor="password">Password</Label>
+              </Col>
+              <Col xs="12" md="10">
+                <Input
+                  size="50"
+                  style={{ width: 'auto' }}
+                  type="password"
+                  name="password"
+                  value={sensorData?.password || ''}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                />
+                <FormText color="muted">
+                  Password for the device, leave empty if no password is set.
+                </FormText>
+              </Col>
+            </FormGroup>
+          </CardBody>
+        </Card>
+      </div>
+    )
+  }
+
   if (pluginState == 'stopped' || pluginState == 'unknown')
     return <h3>Enable plugin to see configuration</h3>
   else
@@ -378,14 +477,15 @@ export function BTConfig(props) {
         />
 
         {error ? <h2 style={{ color: 'red' }}>{error}</h2> : ''}
-        <Form
+        <RjsfForm
           schema={baseSchema}
           validator={validator}
           uiSchema={baseUISchema}
           onChange={(e) => setBaseData(e.formData)}
           onSubmit={({ formData }, e) => {
             updateBaseData(formData)
-            setSchema({})
+            //setSchema({})
+            setSensorData(null)
           }}
           onError={log('errors')}
           formData={baseData}
@@ -407,40 +507,23 @@ export function BTConfig(props) {
           style={{
             paddingLeft: 10,
             paddingTop: 10,
-            display: Object.keys(schema).length == 0 ? 'none' : ''
+            display: sensorData ? '' : 'none'
           }}
         >
-          <Grid container direction="column" style={{ spacing: 5 }}>
-            <Grid item>
-              <h2>{schema?.title}</h2>
-              <p></p>
-            </Grid>
-            <Grid item>{ReactHtmlParser(schema?.htmlDescription)}</Grid>
-          </Grid>
           <fieldset disabled={!enableSchema}>
             <Form
-              schema={schema}
-              validator={validator}
-              uiSchema={uiSchema}
-              onChange={(e, id) => {
-                const s = deviceMap.get(e.formData.id)
-                if (s) {
-                  s._changesMade = true
-                  s.config = e.formData
-                  setSensorData(e.formData)
-                }
-              }}
-              onSubmit={({ formData }, e) => {
-                updateSensorData(formData)
-                const s = deviceMap.get(formData.id)
+              onSubmit={(e) => {
+                e.preventDefault()
+                updateSensorData(sensorData)
+                const s = deviceMap.get(sensorData.id)
                 if (s) {
                   s._changesMade = false
                 }
-                //alert('Changes saved')
+                setSensorData(null)
               }}
               onError={log('errors')}
-              formData={sensorData}
             >
+              {getCommonForm()}
               <div className={classes.root}>
                 <Button type="submit" color="primary" variant="contained">
                   Save
