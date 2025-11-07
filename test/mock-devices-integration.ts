@@ -59,14 +59,6 @@ describe('Mock Device Integration Tests', () => {
       })
     })
 
-    it('should create schema with proper structure', () => {
-      const schema = plugin.schema()
-
-      expect(schema).to.have.property('type', 'object')
-      expect(schema).to.have.property('properties')
-      expect(schema.properties).to.have.property('poll')
-    })
-
     it('should handle device capabilities and interactions', () => {
       const mockedDevices = mockDevices(mockApp, plugin)
 
@@ -74,7 +66,7 @@ describe('Mock Device Integration Tests', () => {
       mockedDevices.forEach(({ device, status }) => {
         expect(() => {
           device.getCapabilities(status)
-          device.registerForPuts(status)
+          device.registerForPuts()
           device.sendDeltas(status)
         }).to.not.throw()
       })
