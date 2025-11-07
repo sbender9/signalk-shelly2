@@ -28,7 +28,6 @@ const start = (app: ServerAPI) => {
   let props: any
   let onStop: any = []
   let devices: Device[] = []
-  const foundConfiguredDevices = 0
   let browser: any
   let pollInterval: any = null
   let connectTimeout: any = null
@@ -277,17 +276,6 @@ const start = (app: ServerAPI) => {
             poll: props.poll
           }
         })
-      })
-
-      router.get('/getProgress', (_req: any, res: any) => {
-        const deviceCount = props.deviceConfigs.filter((dc: any) => dc.active).length
-        const json = {
-          progress: foundConfiguredDevices / deviceCount,
-          maxTimeout: 1,
-          deviceCount: foundConfiguredDevices,
-          totalDevices: deviceCount
-        }
-        res.status(200).json(json)
       })
 
       router.get('/getDevices', (_req: any, res: any) => {

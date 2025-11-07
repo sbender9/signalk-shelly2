@@ -15,8 +15,6 @@ import Tab from 'react-bootstrap/Tab'
 
 import { ListGroupItem, Row, Col } from 'react-bootstrap'
 
-import ProgressBar from 'react-bootstrap/ProgressBar'
-
 export function BTConfig(props) {
   const _uiSchema = {
     'ui:options': { label: false },
@@ -66,13 +64,6 @@ export function BTConfig(props) {
 
   const [enableSchema, setEnableSchema] = useState(true)
   const [deviceMap, setDeviceMap] = useState(new Map())
-
-  const [progress, setProgress] = useState({
-    progress: 0,
-    maxTimeout: 100,
-    deviceCount: 0,
-    totalDevices: 0
-  })
 
   const [pluginState, setPluginState] = useState('unknown')
   const [error, setError] = useState()
@@ -135,17 +126,6 @@ export function BTConfig(props) {
         <p></p>
       </div>
     )
-    return json
-  }
-
-  async function getProgress() {
-    const response = await fetchJSONData('getProgress')
-    if (response.status != 200) {
-      throw new Error(
-        `Unable to get progress: ${response.statusText} (${response.status}) `
-      )
-    }
-    const json = await response.json()
     return json
   }
 
@@ -250,11 +230,6 @@ export function BTConfig(props) {
           deviceChangedEvent(event)
         })
 
-        eventSource.addEventListener('progress', (event) => {
-          const json = JSON.parse(event.data)
-          setProgress(json)
-        })
-
         eventSource.addEventListener('pluginstate', (event) => {
           const json = JSON.parse(event.data)
           setPluginState(json.state)
@@ -292,14 +267,6 @@ export function BTConfig(props) {
         .catch((e) => {
           setError(e.message)
         })
-
-      getProgress()
-        .then((json) => {
-          setProgress(json)
-        })
-        .catch((e) => {
-          setError(e.message)
-        })
     } else {
       setBaseSchema({})
       setBaseData({})
@@ -321,9 +288,10 @@ export function BTConfig(props) {
   function createListGroupItem(sensor) {
     const config = hasConfig(sensor)
     return (
-      <ListGroupItem className="d-flex justify-content-between"
+      <ListGroupItem
+        className="d-flex justify-content-between"
         action
-        onClick={() => {  
+        onClick={() => {
           sensor.settings.id = sensor.id
           sensor.settings.address = sensor.address
           sensor.settings.hostname = sensor.hostname
@@ -333,11 +301,14 @@ export function BTConfig(props) {
           setSensorData(sensor.settings)
         }}
       >
-            <div style={{ flex: 1 }}>{`${sensor._changesMade ? '*' : ''}`}{sensor.model}</div>
-            <div style={{ flex: 1 }}>{sensor.name ?? ''}</div>
-            <div style={{ flex: 1 }}>{sensor.address}</div>
-            <div style={{ flex: 1 }}>{sensor.id}</div>
-            <div style={{ flex: 1 }}>{`${sensor.connected ? 'Yes' : 'No'}`}</div>
+        <div style={{ flex: 1 }}>
+          {`${sensor._changesMade ? '*' : ''}`}
+          {sensor.model}
+        </div>
+        <div style={{ flex: 1 }}>{sensor.name ?? ''}</div>
+        <div style={{ flex: 1 }}>{sensor.address}</div>
+        <div style={{ flex: 1 }}>{sensor.id}</div>
+        <div style={{ flex: 1 }}>{`${sensor.connected ? 'Yes' : 'No'}`}</div>
       </ListGroupItem>
     )
   }
@@ -405,16 +376,6 @@ export function BTConfig(props) {
           message={snackbarMessage}
           key={'snackbar'}
         />
-        <hr
-          style={{
-            width: '100%',
-            height: '1px',
-            color: 'gray',
-            'background-color': 'gray',
-            'text-align': 'left',
-            'margin-left': 0
-          }}
-        ></hr>
 
         {error ? <h2 style={{ color: 'red' }}>{error}</h2> : ''}
         <Form
@@ -439,14 +400,6 @@ export function BTConfig(props) {
             'margin-left': 0
           }}
         ></hr>
-        <p></p>
-        <p></p>
-        {progress.deviceCount < progress.totalDevices ? (
-          <ProgressBar max={progress.maxTimeout} now={progress.progress} />
-        ) : (
-          ''
-        )}
-        <p></p>
         <Tabs defaultActiveKey="_configured" id="domain-tabs" className="mb-3">
           {getTabs()}
         </Tabs>
