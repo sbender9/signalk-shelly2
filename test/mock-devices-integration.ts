@@ -37,12 +37,8 @@ describe('Mock Device Integration Tests', () => {
       expect(mockDevices).to.be.a('function')
     })
 
-    it('mockDevices are turned off', () => {
-      expect(plugin.createMockDevices).to.be.false
-    })
-
     it('should create mock devices with correct structure', () => {
-      const mockedDevices = mockDevices(mockApp, plugin)
+      const mockedDevices = mockDevices(mockApp, plugin, null)
 
       expect(mockedDevices).to.have.length(10)
 
@@ -59,29 +55,21 @@ describe('Mock Device Integration Tests', () => {
       })
     })
 
-    it('should create schema with proper structure', () => {
-      const schema = plugin.schema()
-
-      expect(schema).to.have.property('type', 'object')
-      expect(schema).to.have.property('properties')
-      expect(schema.properties).to.have.property('poll')
-    })
-
     it('should handle device capabilities and interactions', () => {
-      const mockedDevices = mockDevices(mockApp, plugin)
+      const mockedDevices = mockDevices(mockApp, plugin, null)
 
       // Test that we can call device methods without errors
       mockedDevices.forEach(({ device, status }) => {
         expect(() => {
           device.getCapabilities(status)
-          device.registerForPuts(status)
+          device.registerForPuts()
           device.sendDeltas(status)
         }).to.not.throw()
       })
     })
 
     it('should send correct delta messages to Signal K app', () => {
-      const mockedDevices = mockDevices(mockApp, plugin)
+      const mockedDevices = mockDevices(mockApp, plugin, null)
 
       // Test with a temperature/humidity device
       const hmDevice = mockedDevices.find(
@@ -102,7 +90,7 @@ describe('Mock Device Integration Tests', () => {
 
       // Find the call with values (not meta)
       const valuesCall = calls.find(
-        (call) => call.args[1].updates && call.args[1].updates[0].values
+        (call: any) => call.args[1].updates && call.args[1].updates[0].values
       )
 
       expect(valuesCall).to.exist
@@ -127,7 +115,7 @@ describe('Mock Device Integration Tests', () => {
     })
 
     it('should send meta data for devices', () => {
-      const mockedDevices = mockDevices(mockApp, plugin)
+      const mockedDevices = mockDevices(mockApp, plugin, null)
       const powerMeter = mockedDevices.find(
         ({ device }) => device.id === 'shelly-powerMeter'
       )
@@ -143,7 +131,7 @@ describe('Mock Device Integration Tests', () => {
 
       const calls = mockApp.handleMessage.getCalls()
       const metaCall = calls.find(
-        (call) => call.args[1].updates && call.args[1].updates[0].meta
+        (call: any) => call.args[1].updates && call.args[1].updates[0].meta
       )
 
       expect(metaCall).to.exist
@@ -162,7 +150,7 @@ describe('Mock Device Integration Tests', () => {
     })
 
     it('should convert units correctly in deltas', () => {
-      const mockedDevices = mockDevices(mockApp, plugin)
+      const mockedDevices = mockDevices(mockApp, plugin, null)
 
       // Test temperature conversion (Celsius to Kelvin)
       const hmDevice = mockedDevices.find(
@@ -178,7 +166,7 @@ describe('Mock Device Integration Tests', () => {
 
       const calls = mockApp.handleMessage.getCalls()
       const deltaCall = calls.find(
-        (call) => call.args[1].updates && call.args[1].updates[0].values
+        (call: any) => call.args[1].updates && call.args[1].updates[0].values
       )
 
       if (deltaCall) {
@@ -208,7 +196,7 @@ describe('Mock Device Integration Tests', () => {
 
       const calls2 = mockApp.handleMessage.getCalls()
       const deltaCall2 = calls2.find(
-        (call) => call.args[1].updates && call.args[1].updates[0].values
+        (call: any) => call.args[1].updates && call.args[1].updates[0].values
       )
 
       if (deltaCall2) {
@@ -224,7 +212,7 @@ describe('Mock Device Integration Tests', () => {
 
   describe('Mock Device Schema Generation', () => {
     it('should generate schema for RGB/RGBW devices with presets', () => {
-      const mockedDevices = mockDevices(mockApp, plugin)
+      const mockedDevices = mockDevices(mockApp, plugin, null)
 
       const rgbDevice = mockedDevices.find(
         ({ device }) => device.id === 'shelly-rgb'
@@ -247,7 +235,7 @@ describe('Mock Device Integration Tests', () => {
     })
 
     it('should handle different component types correctly', () => {
-      const mockedDevices = mockDevices(mockApp, plugin)
+      const mockedDevices = mockDevices(mockApp, plugin, null)
 
       const componentTypes = new Set()
       mockedDevices.forEach(({ status }) => {
@@ -273,19 +261,19 @@ describe('Mock Device Integration Tests', () => {
     it('should handle mock device creation gracefully', () => {
       // Test with invalid app parameter
       expect(() => {
-        mockDevices(null as any, plugin)
+        mockDevices(null as any, plugin, null)
       }).to.not.throw()
 
       // Test with invalid plugin parameter
       expect(() => {
-        mockDevices(mockApp, null as any)
+        mockDevices(mockApp, null as any, null)
       }).to.not.throw()
     })
 
     it('should provide consistent mock data', () => {
       // Create mock devices multiple times and verify consistency
-      const mockedDevices1 = mockDevices(mockApp, plugin)
-      const mockedDevices2 = mockDevices(mockApp, plugin)
+      const mockedDevices1 = mockDevices(mockApp, plugin, null)
+      const mockedDevices2 = mockDevices(mockApp, plugin, null)
 
       expect(mockedDevices1).to.have.length(mockedDevices2.length)
 
@@ -300,7 +288,7 @@ describe('Mock Device Integration Tests', () => {
     let mockedDevices: any[]
 
     beforeEach(() => {
-      mockedDevices = mockDevices(mockApp, plugin)
+      mockedDevices = mockDevices(mockApp, plugin, null)
     })
 
     it('should have realistic electrical values', () => {

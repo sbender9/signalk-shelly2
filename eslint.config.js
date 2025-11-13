@@ -5,7 +5,14 @@ const tseslint = require('typescript-eslint')
 const prettier = require('eslint-config-prettier/flat')
 
 module.exports = defineConfig([
-  globalIgnores(['**/public', '**/dist', '**/test', '**/docs', 'src/test.ts']),
+  globalIgnores([
+    '**/public',
+    '**/dist',
+    '**/test',
+    '**/docs',
+    '**/web',
+    'src/test.ts'
+  ]),
 
   // TypeScript options
   {

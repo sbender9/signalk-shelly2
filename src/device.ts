@@ -22,6 +22,7 @@ import {
   createComponent
 } from './components'
 import crypto from 'crypto'
+import { Channel } from 'better-sse'
 
 type PendingRequest = {
   request: any
@@ -63,22 +64,27 @@ export class Device {
   private isReconnecting: boolean = false
   sentStaticDeltas: boolean = false
   private authMessage: any = undefined
+  private channel: Channel | null = null
 
   constructor(
     app: ServerAPI,
     plugin: Plugin,
+    channel: Channel | null,
     address: string,
     hostname: string,
     id?: string,
-    deviceSettings?: DeviceSettings
+    deviceSettings?: DeviceSettings,
+    model?: string
   ) {
     this.address = address
     this.app = app
     this.plugin = plugin
+    this.channel = channel
     this.hostname = hostname
     this.maxReconnectAttempts = -1
     this.shouldReconnect = true
     this.id = id || null
+    this.model = model || null
     if (deviceSettings) {
       this.setDeviceSettings(deviceSettings)
     }
@@ -126,6 +132,8 @@ export class Device {
     this.shouldReconnect = true
     this.reconnectAttempts = 0
     this.isReconnecting = false
+    this.sentStaticDeltas = false
+    this.sentMeta = false
 
     this.debug(`Connecting to device at ${this.address}`)
     this.ws = await this.createWebSocketConnection()
@@ -360,6 +368,47 @@ export class Device {
       request.reject(new Error('Device disconnected'))
     })
     this.pendingRequests = {}
+    this.channel?.broadcast(this.toJSON(), 'deviceChanged')
+  }
+
+  private getComponentsInfo() {
+    const res: any[] = []
+    getSupportedComponents().forEach((componentName) => {
+      const components = this.components[componentName]
+      const count = components?.length || 0
+      if (count > 1) {
+        for (let i = 0; i < count; i++) {
+          res.push({
+            key: `${componentName}${i}`,
+            name: componentName,
+            id: i,
+            settings: this.deviceSettings
+              ? this.deviceSettings[`${componentName}${i}`] || {}
+              : {}
+          })
+        }
+      }
+    })
+    return res.length > 0 ? res : undefined
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      address: this.address,
+      hostname: this.hostname,
+      model: this.model,
+      gen: this.gen,
+      name: this.name,
+      connected: this.connected,
+      authFailed: this.authFailed,
+      triedAuth: this.triedAuth,
+      isConfigured: this.deviceSettings ? true : false,
+      settings: this.deviceSettings || {},
+      settingsCopy: this.deviceSettings || {},
+      defaultPath: this.deviceSettings ? undefined : this.getDevicePath(),
+      components: this.getComponentsInfo()
+    }
   }
 
   /**
@@ -489,6 +538,11 @@ export class Device {
     return this.deviceSettings
       ? this.deviceSettings[`${component}${relay}`]
       : undefined
+  }
+
+  async resendDeltas() {
+    const result = await this.send('Shelly.GetStatus')
+    this.sendDeltas(result)
   }
 
   sendDeltas(status: any) {

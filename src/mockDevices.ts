@@ -15,6 +15,7 @@
 
 import { Device, DeviceSettings } from './device'
 import { ServerAPI } from '@signalk/server-api'
+import { Channel } from 'better-sse'
 
 const minimalSettings: DeviceSettings = {
   enabled: true,
@@ -25,6 +26,7 @@ const minimalSettings: DeviceSettings = {
 export default (
   app: ServerAPI,
   plugin: any,
+  channel: Channel | null,
   _getDeviceProps?: (id: string) => any
 ) => {
   return [
@@ -32,10 +34,12 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.100',
         'host.name',
         'shelly-smokeDetector1',
-        minimalSettings
+        minimalSettings,
+        'Smoke Detector'
       ),
       status: {
         'devicepower:0': {
@@ -49,10 +53,12 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.102',
         'host.name',
         'shelly-smokeDetector2',
-        minimalSettings
+        minimalSettings,
+        'Smoke Detector'
       ),
       status: {
         'devicepower:0': {
@@ -67,10 +73,12 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.103',
         'host.name',
         'shelly-powerMeter',
-        minimalSettings
+        minimalSettings,
+        'Power Meter'
       ),
       status: {
         'pm1:0': {
@@ -97,10 +105,12 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.104',
         'host.name',
         'shelly-hm',
-        minimalSettings
+        minimalSettings,
+        'Humidity & Temperature Sensor'
       ),
       status: {
         'temperature:0': { tC: 22 },
@@ -111,10 +121,12 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.105',
         'host.name',
         'shelly-entergyMeter1',
-        minimalSettings
+        minimalSettings,
+        'Energy Meter'
       ),
       status: {
         'em1:0': {
@@ -131,10 +143,12 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.106',
         'host.name',
         'shelly-energyMeter',
-        minimalSettings
+        minimalSettings,
+        'Energy Meter'
       ),
       status: {
         'em:0': {
@@ -173,10 +187,12 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.107',
         'host.name',
         'shelly-rgb',
-        minimalSettings
+        minimalSettings,
+        'RGB Light'
       ),
       status: {
         'rgb:0': { output: true, rgb: [255, 0, 0], brightness: 50 }
@@ -186,11 +202,12 @@ export default (
       device: new Device(
         app,
         plugin,
-        //getDeviceProps?.(`shelly-rgbw`),
+        channel,
         '192.168.99.108',
         'host.name',
         'shelly-rgbw',
-        minimalSettings
+        minimalSettings,
+        'RGBW Light'
       ),
       status: {
         'rgbw:0': {
@@ -211,10 +228,12 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.109',
         'host.name',
         'shelly-light',
-        minimalSettings
+        minimalSettings,
+        'Light'
       ),
       status: {
         'light:0': {
@@ -234,10 +253,12 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.110',
         'host.name',
         'shelly-uni',
-        minimalSettings
+        minimalSettings,
+        'UNI Sensor'
       ),
       status: {
         'voltmeter:100': {
