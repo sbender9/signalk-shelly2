@@ -64,12 +64,12 @@ export class Device {
   private isReconnecting: boolean = false
   sentStaticDeltas: boolean = false
   private authMessage: any = undefined
-  private channel: Channel
+  private channel: Channel | null = null
 
   constructor(
     app: ServerAPI,
     plugin: Plugin,
-    channel: Channel,
+    channel: Channel | null,
     address: string,
     hostname: string,
     id?: string,
@@ -368,7 +368,7 @@ export class Device {
       request.reject(new Error('Device disconnected'))
     })
     this.pendingRequests = {}
-    this.channel.broadcast(this.toJSON(), 'deviceChanged')
+    this.channel?.broadcast(this.toJSON(), 'deviceChanged')
   }
 
   private getComponentsInfo() {

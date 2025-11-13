@@ -85,6 +85,7 @@ describe('Device Class Unit Tests', () => {
       const device = new Device(
         mockApp,
         mockPlugin,
+        null,
         '192.168.1.100',
         'host.name',
         '12345'
@@ -317,6 +318,7 @@ describe('Device Class Unit Tests', () => {
       const device = new Device(
         mockApp,
         mockPlugin,
+        null,
         '192.168.1.100',
         'host.name',
         '123456'

@@ -26,7 +26,7 @@ const minimalSettings: DeviceSettings = {
 export default (
   app: ServerAPI,
   plugin: any,
-  channel: Channel,
+  channel: Channel | null,
   _getDeviceProps?: (id: string) => any
 ) => {
   return [
