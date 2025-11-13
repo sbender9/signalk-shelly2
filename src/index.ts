@@ -17,7 +17,6 @@ import { ServerAPI, Plugin } from '@signalk/server-api'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const mdns = require('mdns-js')
 import { Device } from './device'
-import { getSupportedComponents } from './components'
 import mockDevices from './mockDevices'
 import { createChannel, createSession } from 'better-sse'
 import fs from 'fs'
@@ -374,48 +373,6 @@ const start = (app: ServerAPI) => {
     }
   }
 
-  function getComponentsInfo(device: Device) {
-    const res: any[] = []
-    const deviceProps = getDeviceProps(device.id!)
-    getSupportedComponents().forEach((componentName) => {
-      const components = device.components[componentName]
-      const count = components?.length || 0
-      if (count > 1) {
-        for (let i = 0; i < count; i++) {
-          res.push({
-            key: `${componentName}${i}`,
-            name: componentName,
-            id: i,
-            settings: deviceProps
-              ? deviceProps[`${componentName}${i}`] || {}
-              : {}
-          })
-        }
-      }
-    })
-    return res.length > 0 ? res : undefined
-  }
-
-  function deviceToJSON(device: Device) {
-    const settings = getDeviceProps(device.id!)
-    return {
-      id: device.id,
-      address: device.address,
-      hostname: device.hostname,
-      model: device.model,
-      gen: device.gen,
-      name: device.name,
-      connected: device.connected,
-      authFailed: device.authFailed,
-      triedAuth: device.triedAuth,
-      isConfigured: settings ? true : false,
-      settings: settings || {},
-      settingsCopy: settings || {},
-      defaultPath: settings ? undefined : device.getDevicePath(),
-      components: getComponentsInfo(device)
-    }
-  }
-
   function devicesToJSON() {
     const list: any[] = []
     devices.forEach((device) => {
@@ -457,119 +414,6 @@ const start = (app: ServerAPI) => {
     if (changed) {
       app.savePluginOptions(props, () => {})
     }
-  }
-
-  function getDeviceSchema(device: Device) {
-    const schema: any = {
-      type: 'object',
-      properties: {
-        enabled: {
-          type: 'boolean',
-          title: 'Enabled',
-          default: true
-        },
-        devicePath: {
-          type: 'string',
-          title: 'Device Path',
-          default: device.getDevicePath(),
-          description: `Used to generate the path name, default`
-        },
-        displayName: {
-          type: 'string',
-          title: 'Display Name (meta)',
-          default: device.name || ''
-        },
-        password: {
-          type: 'string',
-          title: 'Password',
-          description:
-            'The password for the device, leave empty if no password is set'
-        }
-      }
-    }
-
-    getSupportedComponents().forEach((component) => {
-      const count = device.components[component]?.length || 0
-      if (count > 1) {
-        for (let i = 0; i < count; i++) {
-          const key = `${component}${i}`
-          const defaultPath = i.toString()
-          const description =
-            'Used to generate the path name, ie. electrical.switches.${bankPath}.${switchPath}.state'
-
-          schema.properties[key] = {
-            type: 'object',
-            properties: {
-              path: {
-                type: 'string',
-                title: 'Path',
-                default: defaultPath,
-                description
-              },
-              displayName: {
-                type: 'string',
-                title: 'Display Name (meta)'
-              },
-              enabled: {
-                type: 'boolean',
-                title: 'Enabled',
-                default: true
-              }
-            }
-          }
-        }
-      }
-      if (count > 0 && (component === 'rgb' || component === 'rgbw')) {
-        const required = ['name', 'red', 'green', 'blue', 'bright']
-        if (component === 'rgbw') {
-          required.push('white')
-        }
-        schema.properties.presets = {
-          title: 'Presets',
-          type: 'array',
-          items: {
-            type: 'object',
-            required,
-            properties: {
-              name: {
-                type: 'string',
-                title: 'Name'
-              },
-              red: {
-                type: 'number',
-                title: 'Red',
-                default: 255
-              },
-              green: {
-                type: 'number',
-                title: 'Green',
-                default: 255
-              },
-              blue: {
-                type: 'number',
-                title: 'Blue',
-                default: 255
-              },
-              bright: {
-                type: 'number',
-                title: 'Brightness',
-                description:
-                  'Number between 1-100. Set to 0 to preserve current brightness',
-                default: 100
-              }
-            }
-          }
-        }
-        if (component === 'rgbw') {
-          schema.properties.presets.items.properties.white = {
-            type: 'number',
-            title: 'White',
-            default: 255
-          }
-        }
-      }
-    })
-    return schema
   }
 
   function getDeviceProps(id: string) {
