@@ -24,7 +24,6 @@ import {
 import crypto from 'crypto'
 import { Channel } from 'better-sse'
 
-
 type PendingRequest = {
   request: any
   resolve: (value: any) => void
@@ -380,7 +379,7 @@ export class Device {
       if (count > 1) {
         for (let i = 0; i < count; i++) {
           res.push({
-            key:  `${componentName}${i}`,
+            key: `${componentName}${i}`,
             name: componentName,
             id: i,
             settings: this.deviceSettings

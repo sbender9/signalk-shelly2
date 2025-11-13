@@ -1,4 +1,4 @@
-import {default as RjsfForm} from '@rjsf/core'
+import { default as RjsfForm } from '@rjsf/core'
 import validator from '@rjsf/validator-ajv8'
 import ReactHtmlParser from 'react-html-parser'
 import React from 'react'
@@ -13,9 +13,17 @@ import ListGroup from 'react-bootstrap/ListGroup'
 import Tabs from 'react-bootstrap/Tabs'
 import Tab from 'react-bootstrap/Tab'
 
-import { ListGroupItem, Row, Col  } from 'react-bootstrap'
-import { Input, Label, FormGroup, Form, Card, CardHeader, CardBody, FormText  } from 'reactstrap'
-
+import { ListGroupItem, Row, Col } from 'react-bootstrap'
+import {
+  Input,
+  Label,
+  FormGroup,
+  Form,
+  Card,
+  CardHeader,
+  CardBody,
+  FormText
+} from 'reactstrap'
 
 export function BTConfig(props) {
   const _uiSchema = {
@@ -325,7 +333,10 @@ export function BTConfig(props) {
             name: sensor.name,
             model: sensor.model,
             devicePath: sensor.settings.devicePath || sensor.defaultPath,
-            enabled: sensor.settings?.enabled !== undefined ? sensor.settings.enabled : true,
+            enabled:
+              sensor.settings?.enabled !== undefined
+                ? sensor.settings.enabled
+                : true,
             components: sensor.components
           }
           setSensorData(settings)
@@ -416,14 +427,21 @@ export function BTConfig(props) {
     return (
       <div className={classes.root}>
         <Card>
-          <CardHeader className="d-flex justify-content-between align-items-center py-2" style={{ cursor: 'pointer' }}>Component</CardHeader>
+          <CardHeader
+            className="d-flex justify-content-between align-items-center py-2"
+            style={{ cursor: 'pointer' }}
+          >
+            Component
+          </CardHeader>
           <CardBody>
             <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
               <ListGroupItem className="d-flex justify-content-between font-weight-bold">
                 <div style={{ flex: 1 }}>Type</div>
                 <div style={{ flex: 1 }}>Identifier</div>
               </ListGroupItem>
-              {sensorData.components.map((component) => getComponentGroupItem(component))}
+              {sensorData.components.map((component) =>
+                getComponentGroupItem(component)
+              )}
             </ListGroup>
           </CardBody>
         </Card>
@@ -436,25 +454,36 @@ export function BTConfig(props) {
     return (
       <div className={classes.root}>
         <Card>
-          <CardHeader className="d-flex justify-content-between align-items-center py-2" style={{ cursor: 'pointer' }}>{selectedComponent.name} {selectedComponent.id}</CardHeader>
+          <CardHeader
+            className="d-flex justify-content-between align-items-center py-2"
+            style={{ cursor: 'pointer' }}
+          >
+            {selectedComponent.name} {selectedComponent.id}
+          </CardHeader>
           <CardBody>
             <FormGroup row>
               <Col md="2">
                 <Label htmlFor="deviceEnabled">Enabled</Label>
               </Col>
               <Col xs="12" md="10">
-              <Label className="switch switch-text switch-primary mb-0 me-3">
-                <Input
-                  type="checkbox"
-                  id="deviceEnabled"
-                  name="deviceEnabled"
-                  className="switch-input"
-                  checked={selectedComponent?.settings.enabled !== undefined ? selectedComponent.settings.enabled : true}
-                  onChange={(e) => handleComponenetChange('enabled', e.target.checked)}
-                />
-                <span className="switch-label" data-on="On" data-off="Off" />
-                <span className="switch-handle" />
-              </Label>
+                <Label className="switch switch-text switch-primary mb-0 me-3">
+                  <Input
+                    type="checkbox"
+                    id="deviceEnabled"
+                    name="deviceEnabled"
+                    className="switch-input"
+                    checked={
+                      selectedComponent?.settings.enabled !== undefined
+                        ? selectedComponent.settings.enabled
+                        : true
+                    }
+                    onChange={(e) =>
+                      handleComponenetChange('enabled', e.target.checked)
+                    }
+                  />
+                  <span className="switch-label" data-on="On" data-off="Off" />
+                  <span className="switch-handle" />
+                </Label>
               </Col>
             </FormGroup>
             <FormGroup row>
@@ -467,11 +496,19 @@ export function BTConfig(props) {
                   style={{ width: 'auto' }}
                   type="text"
                   name="devicePath"
-                  value={selectedComponent.settings.path !== undefined ? selectedComponent.settings.path : selectedComponent.id }
-                  onChange={(e) => handleComponenetChange('path', e.target.value)}
+                  value={
+                    selectedComponent.settings.path !== undefined
+                      ? selectedComponent.settings.path
+                      : selectedComponent.id
+                  }
+                  onChange={(e) =>
+                    handleComponenetChange('path', e.target.value)
+                  }
                 />
                 <FormText color="muted">
-                  { 'Used to generate the path name, ie. electrical.switches.${devicePath}.${path}.state' }
+                  {
+                    'Used to generate the path name, ie. electrical.switches.${devicePath}.${path}.state'
+                  }
                 </FormText>
               </Col>
             </FormGroup>
@@ -486,7 +523,9 @@ export function BTConfig(props) {
                   type="text"
                   name="displayName"
                   value={selectedComponent?.settings?.displayName || ''}
-                  onChange={(e) => handleComponenetChange('displayName', e.target.value)}
+                  onChange={(e) =>
+                    handleComponenetChange('displayName', e.target.value)
+                  }
                 />
                 <FormText color="muted">
                   Display name meta data for the device.
@@ -500,29 +539,38 @@ export function BTConfig(props) {
   }
 
   function getCommonForm() {
-    console.log(`getting common form for sensorData: ${JSON.stringify(sensorData)}`)
+    console.log(
+      `getting common form for sensorData: ${JSON.stringify(sensorData)}`
+    )
     return (
       <div className={classes.root}>
         <Card>
-          <CardHeader className="d-flex justify-content-between align-items-center py-2" style={{ cursor: 'pointer' }}>Device</CardHeader>
+          <CardHeader
+            className="d-flex justify-content-between align-items-center py-2"
+            style={{ cursor: 'pointer' }}
+          >
+            Device
+          </CardHeader>
           <CardBody>
             <FormGroup row>
               <Col md="2">
                 <Label htmlFor="deviceEnabled">Enabled</Label>
               </Col>
               <Col xs="12" md="10">
-              <Label className="switch switch-text switch-primary mb-0 me-3">
-                <Input
-                  type="checkbox"
-                  id="deviceEnabled"
-                  name="deviceEnabled"
-                  className="switch-input"
-                  checked={sensorData?.enabled}
-                  onChange={(e) => handleInputChange('enabled', e.target.checked)}
-                />
-                <span className="switch-label" data-on="On" data-off="Off" />
-                <span className="switch-handle" />
-              </Label>
+                <Label className="switch switch-text switch-primary mb-0 me-3">
+                  <Input
+                    type="checkbox"
+                    id="deviceEnabled"
+                    name="deviceEnabled"
+                    className="switch-input"
+                    checked={sensorData?.enabled}
+                    onChange={(e) =>
+                      handleInputChange('enabled', e.target.checked)
+                    }
+                  />
+                  <span className="switch-label" data-on="On" data-off="Off" />
+                  <span className="switch-handle" />
+                </Label>
               </Col>
             </FormGroup>
             <FormGroup row>
@@ -535,8 +583,12 @@ export function BTConfig(props) {
                   style={{ width: 'auto' }}
                   type="text"
                   name="devicePath"
-                  value={sensorData?.devicePath || sensorData?.defaultPath || ''}
-                  onChange={(e) => handleInputChange('devicePath', e.target.value)}
+                  value={
+                    sensorData?.devicePath || sensorData?.defaultPath || ''
+                  }
+                  onChange={(e) =>
+                    handleInputChange('devicePath', e.target.value)
+                  }
                 />
                 <FormText color="muted">
                   Signal K path to publish data to.
@@ -553,8 +605,10 @@ export function BTConfig(props) {
                   style={{ width: 'auto' }}
                   type="text"
                   name="displayName"
-                  value={sensorData?.displayName || sensorData?.name|| ''}
-                  onChange={(e) => handleInputChange('displayName', e.target.value)}
+                  value={sensorData?.displayName || sensorData?.name || ''}
+                  onChange={(e) =>
+                    handleInputChange('displayName', e.target.value)
+                  }
                 />
                 <FormText color="muted">
                   Display name meta data for the device.
@@ -572,7 +626,9 @@ export function BTConfig(props) {
                   type="password"
                   name="password"
                   value={sensorData?.password || ''}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange('password', e.target.value)
+                  }
                 />
                 <FormText color="muted">
                   Password for the device, leave empty if no password is set.

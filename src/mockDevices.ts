@@ -17,7 +17,6 @@ import { Device, DeviceSettings } from './device'
 import { ServerAPI } from '@signalk/server-api'
 import { Channel } from 'better-sse'
 
-
 const minimalSettings: DeviceSettings = {
   enabled: true,
   displayName: undefined,

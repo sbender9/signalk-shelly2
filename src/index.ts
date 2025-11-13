@@ -95,7 +95,13 @@ const start = (app: ServerAPI) => {
               `Discovered Shelly gen 2+ device at ${data.host}/${data.addresses[0]}`
             )
 
-            device = new Device(app, plugin, channel, data.addresses[0], data.host)
+            device = new Device(
+              app,
+              plugin,
+              channel,
+              data.addresses[0],
+              data.host
+            )
             devices.push(device)
             try {
               await device.connect()
@@ -170,7 +176,7 @@ const start = (app: ServerAPI) => {
         }, 5000)
       }
 
-      if ( props.createMockDevices) {
+      if (props.createMockDevices) {
         const mockedDevices = mockDevices(app, plugin, channel, getDeviceProps)
         mockedDevices.forEach(({ device, status }) => {
           const devProps = getDeviceProps(device.id!)
@@ -178,7 +184,7 @@ const start = (app: ServerAPI) => {
           device.connected = true
           device.authFailed = false
           device.getCapabilities(status)
-          if (devProps ) {
+          if (devProps) {
             device.setDeviceSettings(devProps)
             device.registerForPuts()
             device.sendDeltas(status)
@@ -295,10 +301,10 @@ const start = (app: ServerAPI) => {
         delete settingsCopy.components
 
         components?.forEach((component: any) => {
-          if ( component.settings.enabled === undefined) {
+          if (component.settings.enabled === undefined) {
             component.settings.enabled = true
           }
-          if ( component.settings.path === undefined) {
+          if (component.settings.path === undefined) {
             component.settings.path = component.id.toString()
           }
           settingsCopy[component.key] = component.settings
@@ -377,7 +383,7 @@ const start = (app: ServerAPI) => {
       if (count > 1) {
         for (let i = 0; i < count; i++) {
           res.push({
-            key:  `${componentName}${i}`,
+            key: `${componentName}${i}`,
             name: componentName,
             id: i,
             settings: deviceProps
@@ -425,7 +431,7 @@ const start = (app: ServerAPI) => {
     Object.keys(props).forEach((key) => {
       if (key.startsWith('Device ID ')) {
         const oldProps = JSON.parse(JSON.stringify(props[key]))
-        if ( getDeviceProps(oldProps.deviceId) ) {
+        if (getDeviceProps(oldProps.deviceId)) {
           // already have this device under new format
           return
         }
