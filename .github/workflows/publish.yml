@@ -2,12 +2,18 @@ name: Publish to npm
 on:
   release:
     types: [created]
+  push:
+    branches: ['main']
+    tags: ['v*']
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '22.x'
           registry-url: 'https://registry.npmjs.org'
@@ -21,13 +27,27 @@ jobs:
           npm run build
           npm run build:web
 
+      - name: Extract version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Package version: $VERSION"
+
+      - name: Determine npm tag
+        id: tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ "$VERSION" == *"beta"* ]]; then
+            echo "tag=beta" >> $GITHUB_OUTPUT
+            echo "Using beta tag for version: $VERSION"
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "Using latest tag for version: $VERSION"
+          fi
+
       - name: Publish
         run: |
-          if [[ "$tag" == *beta* ]];
-            then
-              npm publish --tag beta
-            else
-              npm publish --access public
-          fi
+          npm publish --tag ${{ steps.tag.outputs.tag }} --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
