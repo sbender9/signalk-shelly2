@@ -95,11 +95,11 @@ const start = (app: ServerAPI) => {
               `Discovered Shelly gen 2+ device at ${data.host}/${data.addresses[0]}`
             )
 
-            device = new Device(app, plugin, data.addresses[0], data.host)
+            device = new Device(app, plugin, channel, data.addresses[0], data.host)
             devices.push(device)
             try {
               await device.connect()
-              channel.broadcast(deviceToJSON(device), 'newDevice')
+              channel.broadcast(device.toJSON(), 'newDevice')
               const devProps = getDeviceProps(device.id!)
               if (devProps && devProps?.enabled !== false) {
                 app.debug(
@@ -157,7 +157,7 @@ const start = (app: ServerAPI) => {
               `Did not get discovery for device ${device.id} at ${device.hostname}/${device.address}, connecting based on configured settings`
             )
             devices.push(device)
-            channel.broadcast(deviceToJSON(device), 'newDevice')
+            channel.broadcast(device.toJSON(), 'newDevice')
             if (devProps?.enabled === undefined || devProps?.enabled) {
               device.connect().catch((error) => {
                 app.error(
@@ -171,15 +171,19 @@ const start = (app: ServerAPI) => {
       }
 
       if ( props.createMockDevices) {
-        const mockedDevices = mockDevices(app, plugin, getDeviceProps)
+        const mockedDevices = mockDevices(app, plugin, channel, getDeviceProps)
         mockedDevices.forEach(({ device, status }) => {
+          const devProps = getDeviceProps(device.id!)
           devices.push(device)
           device.connected = true
           device.authFailed = false
           device.getCapabilities(status)
-          device.registerForPuts()
-          device.sendDeltas(status)
-          channel.broadcast(deviceToJSON(device), 'newDevice')
+          if (devProps ) {
+            device.setDeviceSettings(devProps)
+            device.registerForPuts()
+            device.sendDeltas(status)
+          }
+          channel.broadcast(device.toJSON(), 'newDevice')
         })
       }
 
@@ -286,16 +290,30 @@ const start = (app: ServerAPI) => {
       router.post('/updateDeviceConfig', async (req: any, res: any) => {
         const device = findDeviceWithId(req.body.id)
 
+        const settingsCopy = JSON.parse(JSON.stringify(req.body))
+        const components = settingsCopy.components
+        delete settingsCopy.components
+
+        components?.forEach((component: any) => {
+          if ( component.settings.enabled === undefined) {
+            component.settings.enabled = true
+          }
+          if ( component.settings.path === undefined) {
+            component.settings.path = component.id.toString()
+          }
+          settingsCopy[component.key] = component.settings
+        })
+
         const i = props.deviceConfigs.findIndex((p: any) => p.id == req.body.id)
         if (i < 0) {
-          props.deviceConfigs.push(req.body)
+          props.deviceConfigs.push(settingsCopy)
         } else {
-          props.deviceConfigs[i] = req.body
+          props.deviceConfigs[i] = settingsCopy
         }
         app.savePluginOptions(props, async () => {
           res.status(200).json({ message: 'Devices updated' })
           if (device) {
-            device.setDeviceSettings(req.body)
+            device.setDeviceSettings(settingsCopy)
             try {
               if (device.connected) {
                 device.disconnect()
@@ -307,7 +325,7 @@ const start = (app: ServerAPI) => {
             } catch (e: any) {
               app.error(e)
             }
-            channel.broadcast(deviceToJSON(device), 'deviceChanged')
+            channel.broadcast(device.toJSON(), 'deviceChanged')
           }
         })
       })
@@ -369,7 +387,7 @@ const start = (app: ServerAPI) => {
         }
       }
     })
-    return res
+    return res.length > 0 ? res : undefined
   }
 
   function deviceToJSON(device: Device) {
@@ -396,7 +414,7 @@ const start = (app: ServerAPI) => {
     const list: any[] = []
     devices.forEach((device) => {
       if (device.id) {
-        list.push(deviceToJSON(device))
+        list.push(device.toJSON())
       }
     })
     return list

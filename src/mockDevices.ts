@@ -15,6 +15,8 @@
 
 import { Device, DeviceSettings } from './device'
 import { ServerAPI } from '@signalk/server-api'
+import { Channel } from 'better-sse'
+
 
 const minimalSettings: DeviceSettings = {
   enabled: true,
@@ -25,6 +27,7 @@ const minimalSettings: DeviceSettings = {
 export default (
   app: ServerAPI,
   plugin: any,
+  channel: Channel,
   _getDeviceProps?: (id: string) => any
 ) => {
   return [
@@ -32,6 +35,7 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.100',
         'host.name',
         'shelly-smokeDetector1',
@@ -50,6 +54,7 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.102',
         'host.name',
         'shelly-smokeDetector2',
@@ -69,6 +74,7 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.103',
         'host.name',
         'shelly-powerMeter',
@@ -100,6 +106,7 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.104',
         'host.name',
         'shelly-hm',
@@ -115,6 +122,7 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.105',
         'host.name',
         'shelly-entergyMeter1',
@@ -136,6 +144,7 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.106',
         'host.name',
         'shelly-energyMeter',
@@ -179,6 +188,7 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.107',
         'host.name',
         'shelly-rgb',
@@ -193,7 +203,7 @@ export default (
       device: new Device(
         app,
         plugin,
-        //getDeviceProps?.(`shelly-rgbw`),
+        channel,
         '192.168.99.108',
         'host.name',
         'shelly-rgbw',
@@ -219,6 +229,7 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.109',
         'host.name',
         'shelly-light',
@@ -243,6 +254,7 @@ export default (
       device: new Device(
         app,
         plugin,
+        channel,
         '192.168.99.110',
         'host.name',
         'shelly-uni',

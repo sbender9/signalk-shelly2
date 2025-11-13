@@ -61,6 +61,8 @@ export function BTConfig(props) {
 
   const [sensorData, setSensorData] = useState()
 
+  const [selectedComponent, setSelectedComponent] = useState()
+
   const [enableSchema, setEnableSchema] = useState(true)
   const [deviceMap, setDeviceMap] = useState(new Map())
 
@@ -148,6 +150,7 @@ export function BTConfig(props) {
     device._changesMade = false
     device.settings = JSON.parse(JSON.stringify(device.settingsCopy))
     setSensorData({ ...device.settings })
+    setSelectedComponent(null)
   }
 
   function removeDeviceConfig(id) {
@@ -163,6 +166,7 @@ export function BTConfig(props) {
       })
       //setSchema({})
       setSensorData(null)
+      setSelectedComponent(null)
     } catch {
       ;(e) => setError(`Couldn't remove ${id}: ${e}`)
     }
@@ -187,6 +191,18 @@ export function BTConfig(props) {
     if (s) {
       s._changesMade = true
       s.settings[fieldName] = value
+    }
+  }
+
+  function handleComponenetChange(fieldName, value) {
+    const settings = { ...selectedComponent.settings, [fieldName]: value }
+    const updatedCompData = { ...selectedComponent, settings: settings }
+    console.log(`updating component data: ${JSON.stringify(updatedCompData)}`)
+    setSelectedComponent(updatedCompData)
+    const s = deviceMap.get(sensorData.id)
+    if (s) {
+      s._changesMade = true
+      s.components[selectedComponent.id].settings = settings
     }
   }
 
@@ -309,9 +325,11 @@ export function BTConfig(props) {
             name: sensor.name,
             model: sensor.model,
             devicePath: sensor.settings.devicePath || sensor.defaultPath,
-            enabled: sensor.settings?.enabled !== undefined ? sensor.settings.enabled : true
+            enabled: sensor.settings?.enabled !== undefined ? sensor.settings.enabled : true,
+            components: sensor.components
           }
           setSensorData(settings)
+          setSelectedComponent(null)
         }}
       >
         <div style={{ flex: 1 }}>
@@ -374,6 +392,110 @@ export function BTConfig(props) {
           {sensorList}
         </ListGroup>
       </Tab>
+    )
+  }
+
+  function getComponentGroupItem(component) {
+    return (
+      <ListGroupItem
+        className="d-flex justify-content-between"
+        action
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setSelectedComponent(component)
+        }}
+      >
+        <div style={{ flex: 1 }}>{component.name}</div>
+        <div style={{ flex: 1 }}>{component.id}</div>
+      </ListGroupItem>
+    )
+  }
+
+  function getComponentList() {
+    return (
+      <div className={classes.root}>
+        <Card>
+          <CardHeader className="d-flex justify-content-between align-items-center py-2" style={{ cursor: 'pointer' }}>Component</CardHeader>
+          <CardBody>
+            <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <ListGroupItem className="d-flex justify-content-between font-weight-bold">
+                <div style={{ flex: 1 }}>Type</div>
+                <div style={{ flex: 1 }}>Identifier</div>
+              </ListGroupItem>
+              {sensorData.components.map((component) => getComponentGroupItem(component))}
+            </ListGroup>
+          </CardBody>
+        </Card>
+      </div>
+    )
+  }
+
+  function getComponentForm() {
+    console.log(`getting component form : ${JSON.stringify(selectedComponent)}`)
+    return (
+      <div className={classes.root}>
+        <Card>
+          <CardHeader className="d-flex justify-content-between align-items-center py-2" style={{ cursor: 'pointer' }}>{selectedComponent.name} {selectedComponent.id}</CardHeader>
+          <CardBody>
+            <FormGroup row>
+              <Col md="2">
+                <Label htmlFor="deviceEnabled">Enabled</Label>
+              </Col>
+              <Col xs="12" md="10">
+              <Label className="switch switch-text switch-primary mb-0 me-3">
+                <Input
+                  type="checkbox"
+                  id="deviceEnabled"
+                  name="deviceEnabled"
+                  className="switch-input"
+                  checked={selectedComponent?.settings.enabled !== undefined ? selectedComponent.settings.enabled : true}
+                  onChange={(e) => handleComponenetChange('enabled', e.target.checked)}
+                />
+                <span className="switch-label" data-on="On" data-off="Off" />
+                <span className="switch-handle" />
+              </Label>
+              </Col>
+            </FormGroup>
+            <FormGroup row>
+              <Col md="2">
+                <Label htmlFor="devicePath">Path</Label>
+              </Col>
+              <Col xs="12" md="10">
+                <Input
+                  size="50"
+                  style={{ width: 'auto' }}
+                  type="text"
+                  name="devicePath"
+                  value={selectedComponent.settings.path !== undefined ? selectedComponent.settings.path : selectedComponent.id }
+                  onChange={(e) => handleComponenetChange('path', e.target.value)}
+                />
+                <FormText color="muted">
+                  { 'Used to generate the path name, ie. electrical.switches.${devicePath}.${path}.state' }
+                </FormText>
+              </Col>
+            </FormGroup>
+            <FormGroup row>
+              <Col md="2">
+                <Label htmlFor="displayName">Display Name (meta)</Label>
+              </Col>
+              <Col xs="12" md="10">
+                <Input
+                  size="50"
+                  style={{ width: 'auto' }}
+                  type="text"
+                  name="displayName"
+                  value={selectedComponent?.settings?.displayName || ''}
+                  onChange={(e) => handleComponenetChange('displayName', e.target.value)}
+                />
+                <FormText color="muted">
+                  Display name meta data for the device.
+                </FormText>
+              </Col>
+            </FormGroup>
+          </CardBody>
+        </Card>
+      </div>
     )
   }
 
@@ -484,8 +606,8 @@ export function BTConfig(props) {
           onChange={(e) => setBaseData(e.formData)}
           onSubmit={({ formData }, e) => {
             updateBaseData(formData)
-            //setSchema({})
             setSensorData(null)
+            setSelectedComponent(null)
           }}
           onError={log('errors')}
           formData={baseData}
@@ -520,10 +642,13 @@ export function BTConfig(props) {
                   s._changesMade = false
                 }
                 setSensorData(null)
+                setSelectedComponent(null)
               }}
               onError={log('errors')}
             >
               {getCommonForm()}
+              {sensorData && sensorData.components ? getComponentList() : ''}
+              {selectedComponent ? getComponentForm() : ''}
               <div className={classes.root}>
                 <Button type="submit" color="primary" variant="contained">
                   Save

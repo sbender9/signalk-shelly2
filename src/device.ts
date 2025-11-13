@@ -22,6 +22,8 @@ import {
   createComponent
 } from './components'
 import crypto from 'crypto'
+import { Channel } from 'better-sse'
+
 
 type PendingRequest = {
   request: any
@@ -63,10 +65,12 @@ export class Device {
   private isReconnecting: boolean = false
   sentStaticDeltas: boolean = false
   private authMessage: any = undefined
+  private channel: Channel
 
   constructor(
     app: ServerAPI,
     plugin: Plugin,
+    channel: Channel,
     address: string,
     hostname: string,
     id?: string,
@@ -76,6 +80,7 @@ export class Device {
     this.address = address
     this.app = app
     this.plugin = plugin
+    this.channel = channel
     this.hostname = hostname
     this.maxReconnectAttempts = -1
     this.shouldReconnect = true
@@ -364,6 +369,47 @@ export class Device {
       request.reject(new Error('Device disconnected'))
     })
     this.pendingRequests = {}
+    this.channel.broadcast(this.toJSON(), 'deviceChanged')
+  }
+
+  private getComponentsInfo() {
+    const res: any[] = []
+    getSupportedComponents().forEach((componentName) => {
+      const components = this.components[componentName]
+      const count = components?.length || 0
+      if (count > 1) {
+        for (let i = 0; i < count; i++) {
+          res.push({
+            key:  `${componentName}${i}`,
+            name: componentName,
+            id: i,
+            settings: this.deviceSettings
+              ? this.deviceSettings[`${componentName}${i}`] || {}
+              : {}
+          })
+        }
+      }
+    })
+    return res.length > 0 ? res : undefined
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      address: this.address,
+      hostname: this.hostname,
+      model: this.model,
+      gen: this.gen,
+      name: this.name,
+      connected: this.connected,
+      authFailed: this.authFailed,
+      triedAuth: this.triedAuth,
+      isConfigured: this.deviceSettings ? true : false,
+      settings: this.deviceSettings || {},
+      settingsCopy: this.deviceSettings || {},
+      defaultPath: this.deviceSettings ? undefined : this.getDevicePath(),
+      components: this.getComponentsInfo()
+    }
   }
 
   /**
