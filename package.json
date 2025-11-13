@@ -8,7 +8,7 @@
     "prettier": "prettier --write .",
     "lint": "eslint --fix --format compact .",
     "ci-lint": "eslint && prettier --check .",
-    "ci-test": "npm run build && npm run test && npm run ci-lint",
+    "ci-test": "npm run build && npm run build:web && npm run test && npm run ci-lint",
     "format": "npm run prettier && npm run lint",
     "build": "tsc",
     "watch": "npm run build -- -w",
