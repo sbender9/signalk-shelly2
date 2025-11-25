@@ -176,7 +176,7 @@ const start = (app: ServerAPI) => {
       }
 
       if (props.createMockDevices) {
-        const mockedDevices = mockDevices(app, plugin, channel, getDeviceProps)
+        const mockedDevices = mockDevices(app, plugin, channel, false)
         mockedDevices.forEach(({ device, status }) => {
           const devProps = getDeviceProps(device.id!)
           devices.push(device)
@@ -187,7 +187,7 @@ const start = (app: ServerAPI) => {
             device.setDeviceSettings(devProps)
             device.registerForPuts()
             device.sendDeltas(status)
-          }
+          } 
           channel.broadcast(device.toJSON(), 'newDevice')
         })
       }

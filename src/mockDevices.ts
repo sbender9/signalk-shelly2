@@ -17,7 +17,7 @@ import { Device, DeviceSettings } from './device'
 import { ServerAPI } from '@signalk/server-api'
 import { Channel } from 'better-sse'
 
-const minimalSettings: DeviceSettings = {
+const defaultDeviceSettings: DeviceSettings = {
   enabled: true,
   displayName: undefined,
   devicePath: undefined
@@ -27,8 +27,9 @@ export default (
   app: ServerAPI,
   plugin: any,
   channel: Channel | null,
-  _getDeviceProps?: (id: string) => any
+  forTests: boolean = true
 ) => {
+  const initialDeviceSettings: DeviceSettings | undefined = forTests ? defaultDeviceSettings : undefined
   return [
     {
       device: new Device(
@@ -38,7 +39,7 @@ export default (
         '192.168.99.100',
         'host.name',
         'shelly-smokeDetector1',
-        minimalSettings,
+        initialDeviceSettings,
         'Smoke Detector'
       ),
       status: {
@@ -57,7 +58,7 @@ export default (
         '192.168.99.102',
         'host.name',
         'shelly-smokeDetector2',
-        minimalSettings,
+        initialDeviceSettings,
         'Smoke Detector'
       ),
       status: {
@@ -77,7 +78,7 @@ export default (
         '192.168.99.103',
         'host.name',
         'shelly-powerMeter',
-        minimalSettings,
+        initialDeviceSettings,
         'Power Meter'
       ),
       status: {
@@ -109,7 +110,7 @@ export default (
         '192.168.99.104',
         'host.name',
         'shelly-hm',
-        minimalSettings,
+        initialDeviceSettings,
         'Humidity & Temperature Sensor'
       ),
       status: {
@@ -125,7 +126,7 @@ export default (
         '192.168.99.105',
         'host.name',
         'shelly-entergyMeter1',
-        minimalSettings,
+        initialDeviceSettings,
         'Energy Meter'
       ),
       status: {
@@ -147,7 +148,7 @@ export default (
         '192.168.99.106',
         'host.name',
         'shelly-energyMeter',
-        minimalSettings,
+        initialDeviceSettings,
         'Energy Meter'
       ),
       status: {
@@ -191,7 +192,7 @@ export default (
         '192.168.99.107',
         'host.name',
         'shelly-rgb',
-        minimalSettings,
+        initialDeviceSettings,
         'RGB Light'
       ),
       status: {
@@ -206,7 +207,7 @@ export default (
         '192.168.99.108',
         'host.name',
         'shelly-rgbw',
-        minimalSettings,
+        initialDeviceSettings,
         'RGBW Light'
       ),
       status: {
@@ -232,7 +233,7 @@ export default (
         '192.168.99.109',
         'host.name',
         'shelly-light',
-        minimalSettings,
+        initialDeviceSettings,
         'Light'
       ),
       status: {
@@ -257,7 +258,7 @@ export default (
         '192.168.99.110',
         'host.name',
         'shelly-uni',
-        minimalSettings,
+        initialDeviceSettings,
         'UNI Sensor'
       ),
       status: {
