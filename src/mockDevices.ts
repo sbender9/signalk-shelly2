@@ -29,7 +29,9 @@ export default (
   channel: Channel | null,
   forTests: boolean = true
 ) => {
-  const initialDeviceSettings: DeviceSettings | undefined = forTests ? defaultDeviceSettings : undefined
+  const initialDeviceSettings: DeviceSettings | undefined = forTests
+    ? defaultDeviceSettings
+    : undefined
   return [
     {
       device: new Device(

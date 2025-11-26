@@ -187,7 +187,7 @@ const start = (app: ServerAPI) => {
             device.setDeviceSettings(devProps)
             device.registerForPuts()
             device.sendDeltas(status)
-          } 
+          }
           channel.broadcast(device.toJSON(), 'newDevice')
         })
       }
