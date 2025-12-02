@@ -279,7 +279,7 @@ export function BTConfig(props) {
       })
     return () => {
       console.log('Closing connection to SSE')
-      if ( eventSource) {
+      if (eventSource) {
         eventSource.close()
       }
     }
