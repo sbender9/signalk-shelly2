@@ -24,10 +24,6 @@
   "author": "scott@scottbender.net",
   "license": "Apache-2.0",
   "dependencies": {
-    "@rjsf/bootstrap-4": "^5.24.12",
-    "@rjsf/core": "^5.24.11",
-    "@rjsf/utils": "^5.24.11",
-    "@rjsf/validator-ajv8": "^5.24.11",
     "better-sse": "^0.15.1",
     "buffer": "^6.0.3",
     "camelcase": "^6.2.0",
@@ -39,6 +35,10 @@
     "url": "https://github.com/sbender9/signalk-shelly2"
   },
   "devDependencies": {
+    "@rjsf/bootstrap-4": "^5.24.12",
+    "@rjsf/core": "^5.24.11",
+    "@rjsf/utils": "^5.24.11",
+    "@rjsf/validator-ajv8": "^5.24.11",
     "@babel/core": "^7.11.6",
     "@babel/preset-react": "^7.10.4",
     "@fortawesome/fontawesome-free": "^5.15.1",
