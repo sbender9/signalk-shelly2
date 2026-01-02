@@ -151,6 +151,7 @@ const start = (app: ServerAPI) => {
             device = new Device(
               app,
               plugin,
+              channel,
               devProps.address,
               devProps.hostname,
               devProps.id,
