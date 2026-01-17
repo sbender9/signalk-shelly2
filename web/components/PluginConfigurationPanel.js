@@ -1,67 +1,9 @@
-import { default as RjsfForm } from '@rjsf/core'
-import validator from '@rjsf/validator-ajv8'
-import ReactHtmlParser from 'react-html-parser'
 import React from 'react'
 import { useEffect, useState } from 'react'
 
-import { Button, Grid, Snackbar } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
-
-const log = (type) => console.log.bind(console, type)
-
-import ListGroup from 'react-bootstrap/ListGroup'
-import Tabs from 'react-bootstrap/Tabs'
-import Tab from 'react-bootstrap/Tab'
-
-import { ListGroupItem, Row, Col } from 'react-bootstrap'
-import {
-  Input,
-  Label,
-  FormGroup,
-  Form,
-  Card,
-  CardHeader,
-  CardBody,
-  FormText
-} from 'reactstrap'
-
 export function ShellyConfig(props) {
-  const _uiSchema = {
-    'ui:options': { label: false },
-    paths: {
-      enableMarkdownInDescription: true
-    },
-    title: { 'ui:widget': 'hidden' }
-  }
-
-  const baseUISchema = {
-    'ui:field': 'LayoutGridField',
-    'ui:layoutGrid': {
-      'ui:row': [
-        {
-          'ui:row': {
-            className: 'row',
-            children: [
-              {
-                'ui:columns': {
-                  className: 'col-xs-4',
-                  children: ['poll']
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-  }
-
-  const useStyles = makeStyles((theme) => ({
-    root: {
-      '& > *': {
-        margin: theme.spacing(1)
-      }
-    }
-  }))
+  // Simple spacing class for buttons and cards
+  const spacingStyle = { margin: '8px' }
 
   const [baseSchema, setBaseSchema] = useState({})
 
@@ -78,7 +20,6 @@ export function ShellyConfig(props) {
   const [error, setError] = useState()
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState('')
-  const classes = useStyles()
 
   function sendJSONData(cmd, data) {
     const headers = new Headers()
@@ -129,12 +70,10 @@ export function ShellyConfig(props) {
       )
     }
     const json = await response.json()
-    json.schema.htmlDescription = (
-      <div>
-        {ReactHtmlParser(json.schema.htmlDescription)}
-        <p></p>
-      </div>
-    )
+    // Store the raw HTML string - it will be rendered via dangerouslySetInnerHTML at render time
+    // Don't pre-create JSX here as it causes React version incompatibility
+    json.schema._rawHtmlDescription = json.schema.htmlDescription
+    json.schema.htmlDescription = undefined
     return json
   }
 
@@ -323,9 +262,10 @@ export function ShellyConfig(props) {
   function createListGroupItem(sensor) {
     const config = hasConfig(sensor)
     return (
-      <ListGroupItem
-        className="d-flex justify-content-between"
-        action
+      <button
+        key={sensor.id}
+        type="button"
+        className="list-group-item list-group-item-action d-flex justify-content-between"
         onClick={() => {
           const settings = {
             ...sensor.settings,
@@ -353,9 +293,11 @@ export function ShellyConfig(props) {
         <div style={{ flex: 1 }}>{sensor.address}</div>
         <div style={{ flex: 1 }}>{sensor.id}</div>
         <div style={{ flex: 1 }}>{`${sensor.connected ? 'Yes' : 'No'}`}</div>
-      </ListGroupItem>
+      </button>
     )
   }
+
+  const [activeTab, setActiveTab] = useState('_configured')
 
   function getTabs() {
     console.log('loading tabs')
@@ -365,8 +307,8 @@ export function ShellyConfig(props) {
     const notConfigured = Array.from(deviceMap.entries()).filter(
       (entry) => !hasConfig(entry[1])
     )
-    let sensorList = {}
-    sensorList['_configured'] =
+
+    const configuredContent =
       cd.length == 0
         ? 'Select a device from Unconfigured and configure it.'
         : cd.map((entry) => {
@@ -374,45 +316,95 @@ export function ShellyConfig(props) {
             return createListGroupItem(deviceMap.get(entry[0]))
           })
 
-    sensorList['_unconfigured'] =
+    const unconfiguredContent =
       notConfigured.length == 0
         ? 'No Unconfigured Devices Found'
         : notConfigured.map((entry) => {
             return createListGroupItem(deviceMap.get(entry[0]))
           })
 
-    return Object.keys(sensorList).map((domain) => {
-      return getTab(domain, sensorList[domain])
-    })
-  }
-
-  function getTab(key, sensorList) {
-    let title = key.slice(key.charAt(0) === '_' ? 1 : 0)
-
     return (
-      <Tab
-        eventKey={key}
-        title={`${title.charAt(0).toUpperCase()}${title.slice(1)}${typeof sensorList == 'string' ? '' : ' (' + sensorList.length + ')'}`}
-      >
-        <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
-          <ListGroupItem className="d-flex justify-content-between font-weight-bold">
-            <div style={{ flex: 1 }}>Model</div>
-            <div style={{ flex: 1 }}>Name</div>
-            <div style={{ flex: 1 }}>Address</div>
-            <div style={{ flex: 1 }}>Shelly ID</div>
-            <div style={{ flex: 1 }}>Connected</div>
-          </ListGroupItem>
-          {sensorList}
-        </ListGroup>
-      </Tab>
+      <div>
+        <ul className="nav nav-tabs mb-3">
+          <li className="nav-item">
+            <button
+              className={`nav-link ${activeTab === '_configured' ? 'active' : ''}`}
+              onClick={() => setActiveTab('_configured')}
+              type="button"
+            >
+              Configured
+              {typeof configuredContent !== 'string'
+                ? ` (${configuredContent.length})`
+                : ''}
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link ${activeTab === '_unconfigured' ? 'active' : ''}`}
+              onClick={() => setActiveTab('_unconfigured')}
+              type="button"
+            >
+              Unconfigured
+              {typeof unconfiguredContent !== 'string'
+                ? ` (${unconfiguredContent.length})`
+                : ''}
+            </button>
+          </li>
+        </ul>
+        <div className="tab-content">
+          <div
+            className={`tab-pane fade ${activeTab === '_configured' ? 'show active' : ''}`}
+          >
+            <div
+              className="list-group"
+              style={{ maxHeight: '300px', overflowY: 'auto' }}
+            >
+              <div className="list-group-item d-flex justify-content-between fw-bold">
+                <div style={{ flex: 1 }}>Model</div>
+                <div style={{ flex: 1 }}>Name</div>
+                <div style={{ flex: 1 }}>Address</div>
+                <div style={{ flex: 1 }}>Shelly ID</div>
+                <div style={{ flex: 1 }}>Connected</div>
+              </div>
+              {typeof configuredContent === 'string' ? (
+                <div className="list-group-item">{configuredContent}</div>
+              ) : (
+                configuredContent
+              )}
+            </div>
+          </div>
+          <div
+            className={`tab-pane fade ${activeTab === '_unconfigured' ? 'show active' : ''}`}
+          >
+            <div
+              className="list-group"
+              style={{ maxHeight: '300px', overflowY: 'auto' }}
+            >
+              <div className="list-group-item d-flex justify-content-between fw-bold">
+                <div style={{ flex: 1 }}>Model</div>
+                <div style={{ flex: 1 }}>Name</div>
+                <div style={{ flex: 1 }}>Address</div>
+                <div style={{ flex: 1 }}>Shelly ID</div>
+                <div style={{ flex: 1 }}>Connected</div>
+              </div>
+              {typeof unconfiguredContent === 'string' ? (
+                <div className="list-group-item">{unconfiguredContent}</div>
+              ) : (
+                unconfiguredContent
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     )
   }
 
   function getComponentGroupItem(component) {
     return (
-      <ListGroupItem
-        className="d-flex justify-content-between"
-        action
+      <button
+        key={component.id}
+        type="button"
+        className="list-group-item list-group-item-action d-flex justify-content-between"
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
@@ -421,32 +413,35 @@ export function ShellyConfig(props) {
       >
         <div style={{ flex: 1 }}>{component.name}</div>
         <div style={{ flex: 1 }}>{component.id}</div>
-      </ListGroupItem>
+      </button>
     )
   }
 
   function getComponentList() {
     return (
-      <div className={classes.root}>
-        <Card>
-          <CardHeader
-            className="d-flex justify-content-between align-items-center py-2"
+      <div style={spacingStyle}>
+        <div className="card">
+          <div
+            className="card-header d-flex justify-content-between align-items-center py-2"
             style={{ cursor: 'pointer' }}
           >
             Component
-          </CardHeader>
-          <CardBody>
-            <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <ListGroupItem className="d-flex justify-content-between font-weight-bold">
+          </div>
+          <div className="card-body">
+            <div
+              className="list-group"
+              style={{ maxHeight: '300px', overflowY: 'auto' }}
+            >
+              <div className="list-group-item d-flex justify-content-between fw-bold">
                 <div style={{ flex: 1 }}>Type</div>
                 <div style={{ flex: 1 }}>Identifier</div>
-              </ListGroupItem>
+              </div>
               {sensorData.components.map((component) =>
                 getComponentGroupItem(component)
               )}
-            </ListGroup>
-          </CardBody>
-        </Card>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -454,26 +449,28 @@ export function ShellyConfig(props) {
   function getComponentForm() {
     console.log(`getting component form : ${JSON.stringify(selectedComponent)}`)
     return (
-      <div className={classes.root}>
-        <Card>
-          <CardHeader
-            className="d-flex justify-content-between align-items-center py-2"
+      <div style={spacingStyle}>
+        <div className="card">
+          <div
+            className="card-header d-flex justify-content-between align-items-center py-2"
             style={{ cursor: 'pointer' }}
           >
             {selectedComponent.name} {selectedComponent.id}
-          </CardHeader>
-          <CardBody>
-            <FormGroup row>
-              <Col md="2">
-                <Label htmlFor="deviceEnabled">Enabled</Label>
-              </Col>
-              <Col xs="12" md="10">
-                <Label className="switch switch-text switch-primary mb-0 me-3">
-                  <Input
+          </div>
+          <div className="card-body">
+            <div className="row mb-3">
+              <div className="col-md-2">
+                <label htmlFor="componentEnabled" className="form-label">
+                  Enabled
+                </label>
+              </div>
+              <div className="col-12 col-md-10">
+                <div className="form-check form-switch">
+                  <input
                     type="checkbox"
-                    id="deviceEnabled"
-                    name="deviceEnabled"
-                    className="switch-input"
+                    id="componentEnabled"
+                    name="componentEnabled"
+                    className="form-check-input"
                     checked={
                       selectedComponent?.settings.enabled !== undefined
                         ? selectedComponent.settings.enabled
@@ -483,21 +480,23 @@ export function ShellyConfig(props) {
                       handleComponenetChange('enabled', e.target.checked)
                     }
                   />
-                  <span className="switch-label" data-on="On" data-off="Off" />
-                  <span className="switch-handle" />
-                </Label>
-              </Col>
-            </FormGroup>
-            <FormGroup row>
-              <Col md="2">
-                <Label htmlFor="devicePath">Path</Label>
-              </Col>
-              <Col xs="12" md="10">
-                <Input
+                </div>
+              </div>
+            </div>
+            <div className="row mb-3">
+              <div className="col-md-2">
+                <label htmlFor="componentPath" className="form-label">
+                  Path
+                </label>
+              </div>
+              <div className="col-12 col-md-10">
+                <input
                   size="50"
                   style={{ width: 'auto' }}
                   type="text"
-                  name="devicePath"
+                  id="componentPath"
+                  name="componentPath"
+                  className="form-control"
                   value={
                     selectedComponent.settings.path !== undefined
                       ? selectedComponent.settings.path
@@ -507,35 +506,39 @@ export function ShellyConfig(props) {
                     handleComponenetChange('path', e.target.value)
                   }
                 />
-                <FormText color="muted">
+                <div className="form-text text-muted">
                   {
                     'Used to generate the path name, ie. electrical.switches.${devicePath}.${path}.state'
                   }
-                </FormText>
-              </Col>
-            </FormGroup>
-            <FormGroup row>
-              <Col md="2">
-                <Label htmlFor="displayName">Display Name (meta)</Label>
-              </Col>
-              <Col xs="12" md="10">
-                <Input
+                </div>
+              </div>
+            </div>
+            <div className="row mb-3">
+              <div className="col-md-2">
+                <label htmlFor="componentDisplayName" className="form-label">
+                  Display Name (meta)
+                </label>
+              </div>
+              <div className="col-12 col-md-10">
+                <input
                   size="50"
                   style={{ width: 'auto' }}
                   type="text"
-                  name="displayName"
+                  id="componentDisplayName"
+                  name="componentDisplayName"
+                  className="form-control"
                   value={selectedComponent?.settings?.displayName || ''}
                   onChange={(e) =>
                     handleComponenetChange('displayName', e.target.value)
                   }
                 />
-                <FormText color="muted">
+                <div className="form-text text-muted">
                   Display name meta data for the device.
-                </FormText>
-              </Col>
-            </FormGroup>
-          </CardBody>
-        </Card>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -545,46 +548,50 @@ export function ShellyConfig(props) {
       `getting common form for sensorData: ${JSON.stringify(sensorData)}`
     )
     return (
-      <div className={classes.root}>
-        <Card>
-          <CardHeader
-            className="d-flex justify-content-between align-items-center py-2"
+      <div style={spacingStyle}>
+        <div className="card">
+          <div
+            className="card-header d-flex justify-content-between align-items-center py-2"
             style={{ cursor: 'pointer' }}
           >
             Device
-          </CardHeader>
-          <CardBody>
-            <FormGroup row>
-              <Col md="2">
-                <Label htmlFor="deviceEnabled">Enabled</Label>
-              </Col>
-              <Col xs="12" md="10">
-                <Label className="switch switch-text switch-primary mb-0 me-3">
-                  <Input
+          </div>
+          <div className="card-body">
+            <div className="row mb-3">
+              <div className="col-md-2">
+                <label htmlFor="deviceEnabled" className="form-label">
+                  Enabled
+                </label>
+              </div>
+              <div className="col-12 col-md-10">
+                <div className="form-check form-switch">
+                  <input
                     type="checkbox"
                     id="deviceEnabled"
                     name="deviceEnabled"
-                    className="switch-input"
+                    className="form-check-input"
                     checked={sensorData?.enabled}
                     onChange={(e) =>
                       handleInputChange('enabled', e.target.checked)
                     }
                   />
-                  <span className="switch-label" data-on="On" data-off="Off" />
-                  <span className="switch-handle" />
-                </Label>
-              </Col>
-            </FormGroup>
-            <FormGroup row>
-              <Col md="2">
-                <Label htmlFor="devicePath">Path</Label>
-              </Col>
-              <Col xs="12" md="10">
-                <Input
+                </div>
+              </div>
+            </div>
+            <div className="row mb-3">
+              <div className="col-md-2">
+                <label htmlFor="devicePath" className="form-label">
+                  Path
+                </label>
+              </div>
+              <div className="col-12 col-md-10">
+                <input
                   size="50"
                   style={{ width: 'auto' }}
                   type="text"
+                  id="devicePath"
                   name="devicePath"
+                  className="form-control"
                   value={
                     sensorData?.devicePath || sensorData?.defaultPath || ''
                   }
@@ -592,53 +599,61 @@ export function ShellyConfig(props) {
                     handleInputChange('devicePath', e.target.value)
                   }
                 />
-                <FormText color="muted">
+                <div className="form-text text-muted">
                   Signal K path to publish data to.
-                </FormText>
-              </Col>
-            </FormGroup>
-            <FormGroup row>
-              <Col md="2">
-                <Label htmlFor="displayName">Display Name (meta)</Label>
-              </Col>
-              <Col xs="12" md="10">
-                <Input
+                </div>
+              </div>
+            </div>
+            <div className="row mb-3">
+              <div className="col-md-2">
+                <label htmlFor="displayName" className="form-label">
+                  Display Name (meta)
+                </label>
+              </div>
+              <div className="col-12 col-md-10">
+                <input
                   size="50"
                   style={{ width: 'auto' }}
                   type="text"
+                  id="displayName"
                   name="displayName"
+                  className="form-control"
                   value={sensorData?.displayName || sensorData?.name || ''}
                   onChange={(e) =>
                     handleInputChange('displayName', e.target.value)
                   }
                 />
-                <FormText color="muted">
+                <div className="form-text text-muted">
                   Display name meta data for the device.
-                </FormText>
-              </Col>
-            </FormGroup>
-            <FormGroup row>
-              <Col md="2">
-                <Label htmlFor="password">Password</Label>
-              </Col>
-              <Col xs="12" md="10">
-                <Input
+                </div>
+              </div>
+            </div>
+            <div className="row mb-3">
+              <div className="col-md-2">
+                <label htmlFor="password" className="form-label">
+                  Password
+                </label>
+              </div>
+              <div className="col-12 col-md-10">
+                <input
                   size="50"
                   style={{ width: 'auto' }}
                   type="password"
+                  id="password"
                   name="password"
+                  className="form-control"
                   value={sensorData?.password || ''}
                   onChange={(e) =>
                     handleInputChange('password', e.target.value)
                   }
                 />
-                <FormText color="muted">
+                <div className="form-text text-muted">
                   Password for the device, leave empty if no password is set.
-                </FormText>
-              </Col>
-            </FormGroup>
-          </CardBody>
-        </Card>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -648,28 +663,75 @@ export function ShellyConfig(props) {
   else
     return (
       <div>
-        <Snackbar
-          anchorOrigin={{ horizontal: 'center', vertical: 'bottom' }}
-          onClose={() => setSnackbarOpen(false)}
-          open={snackbarOpen}
-          message={snackbarMessage}
-          key={'snackbar'}
-        />
+        {/* Bootstrap Toast for notifications */}
+        {snackbarOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1050
+            }}
+          >
+            <div className="toast show" role="alert">
+              <div className="toast-body d-flex justify-content-between align-items-center">
+                {snackbarMessage}
+                <button
+                  type="button"
+                  className="btn-close ms-2"
+                  onClick={() => setSnackbarOpen(false)}
+                ></button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error ? <h2 style={{ color: 'red' }}>{error}</h2> : ''}
-        <RjsfForm
-          schema={baseSchema}
-          validator={validator}
-          uiSchema={baseUISchema}
-          onChange={(e) => setBaseData(e.formData)}
-          onSubmit={({ formData }, e) => {
-            updateBaseData(formData)
+        {baseSchema._rawHtmlDescription && (
+          <div
+            style={{ marginBottom: '1rem' }}
+            dangerouslySetInnerHTML={{ __html: baseSchema._rawHtmlDescription }}
+          />
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            updateBaseData(baseData)
             setSensorData(null)
             setSelectedComponent(null)
           }}
-          onError={log('errors')}
-          formData={baseData}
-        />
+        >
+          <div className="row mb-3">
+            <div className="col-md-2">
+              <label htmlFor="pollInterval" className="form-label">
+                Poll Interval (ms)
+              </label>
+            </div>
+            <div className="col-md-4">
+              <input
+                type="number"
+                id="pollInterval"
+                name="pollInterval"
+                className="form-control"
+                value={baseData?.poll ?? 5000}
+                onChange={(e) =>
+                  setBaseData({
+                    ...baseData,
+                    poll: parseInt(e.target.value, 10)
+                  })
+                }
+              />
+              <div className="form-text text-muted">
+                The interval at which the device is polled for updates, -1 to
+                disable
+              </div>
+            </div>
+          </div>
+          <button type="submit" className="btn btn-primary">
+            Save
+          </button>
+        </form>
         <hr
           style={{
             width: '100%',
@@ -680,9 +742,7 @@ export function ShellyConfig(props) {
             'margin-left': 0
           }}
         ></hr>
-        <Tabs defaultActiveKey="_configured" id="domain-tabs" className="mb-3">
-          {getTabs()}
-        </Tabs>
+        {getTabs()}
         <div
           style={{
             paddingLeft: 10,
@@ -691,7 +751,7 @@ export function ShellyConfig(props) {
           }}
         >
           <fieldset disabled={!enableSchema}>
-            <Form
+            <form
               onSubmit={(e) => {
                 e.preventDefault()
                 updateSensorData(sensorData)
@@ -702,32 +762,32 @@ export function ShellyConfig(props) {
                 setSensorData(null)
                 setSelectedComponent(null)
               }}
-              onError={log('errors')}
             >
               {getCommonForm()}
               {sensorData && sensorData.components ? getComponentList() : ''}
               {selectedComponent ? getComponentForm() : ''}
-              <div className={classes.root}>
-                <Button type="submit" color="primary" variant="contained">
+              <div style={spacingStyle} className="d-flex gap-2">
+                <button type="submit" className="btn btn-primary">
                   Save
-                </Button>
-                <Button
-                  variant="contained"
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
                   onClick={() => {
                     undoChanges(sensorData.id)
                   }}
                 >
                   Undo
-                </Button>
-                <Button
-                  variant="contained"
-                  color="secondary"
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
                   onClick={(e) => confirmDelete(sensorData.id)}
                 >
                   Delete
-                </Button>
+                </button>
               </div>
-            </Form>
+            </form>
           </fieldset>
         </div>
       </div>
