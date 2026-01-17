@@ -28,6 +28,7 @@ import { PM1 } from './PM1'
 import { Smoke } from './Smoke'
 import { Device } from '../device'
 import { Devicepower } from './Devicepower'
+import { Flood } from './Flood'
 
 export * from './Component'
 /*
@@ -71,6 +72,7 @@ export const supportedComponents = [
   'voltmeter',
   'input',
   'smoke',
+  'flood',
   'devicepower'
 ]
 
@@ -93,7 +95,8 @@ export const componentCreators: {
   voltmeter: (device: Device, id: number) => new Voltmeter(device, id),
   input: (device: Device, id: number) => new Input(device, id),
   smoke: (device: Device, id: number) => new Smoke(device, id),
-  devicepower: (device: Device, id: number) => new Devicepower(device, id)
+  devicepower: (device: Device, id: number) => new Devicepower(device, id),
+  flood: (device: Device, id: number) => new Flood(device, id)
 }
 
 export function createComponent(
