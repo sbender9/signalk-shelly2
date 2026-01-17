@@ -25,7 +25,7 @@ import {
   FormText
 } from 'reactstrap'
 
-export function BTConfig(props) {
+export function ShellyConfig(props) {
   const _uiSchema = {
     'ui:options': { label: false },
     paths: {
@@ -733,4 +733,4 @@ export function BTConfig(props) {
       </div>
     )
 }
-export default BTConfig
+export default ShellyConfig
