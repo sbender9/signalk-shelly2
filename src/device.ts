@@ -15,7 +15,7 @@
 
 import camelCase from 'camelcase'
 import WebSocket from 'ws'
-import { ServerAPI, Plugin, Path, PathValue } from '@signalk/server-api'
+import { ServerAPI, Plugin, Path, PathValue, SourceRef } from '@signalk/server-api'
 import {
   Component,
   getSupportedComponents,
@@ -441,6 +441,7 @@ export class Device {
 
   async send(method: string, params: any = {}): Promise<any> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.attemptReconnection()
       throw new Error(
         `WebSocket is not connected (state: ${this.ws?.readyState || 'null'})`
       )
@@ -614,9 +615,10 @@ export class Device {
 
     if (values.length > 0) {
       this.debug('sending deltas %j', values)
-      this.app.handleMessage(this.plugin.id, {
+      this.app.handleMessage(this.plugin.id + '.' + this.id, {
         updates: [
           {
+            '$source': (this.plugin.id + '.' + this.id) as SourceRef,
             values
           }
         ]
@@ -659,9 +661,10 @@ export class Device {
 
     if (meta.length) {
       this.debug('sending meta: %j', meta)
-      this.app.handleMessage(this.plugin.id, {
+      this.app.handleMessage(this.plugin.id+ '.' + this.id, {
         updates: [
           {
+            '$source': (this.plugin.id + '.' + this.id) as SourceRef,
             meta
           }
         ]
