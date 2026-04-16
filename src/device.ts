@@ -15,7 +15,13 @@
 
 import camelCase from 'camelcase'
 import WebSocket from 'ws'
-import { ServerAPI, Plugin, Path, PathValue, SourceRef } from '@signalk/server-api'
+import {
+  ServerAPI,
+  Plugin,
+  Path,
+  PathValue,
+  SourceRef
+} from '@signalk/server-api'
 import {
   Component,
   getSupportedComponents,
@@ -618,7 +624,7 @@ export class Device {
       this.app.handleMessage(this.plugin.id + '.' + this.id, {
         updates: [
           {
-            '$source': (this.plugin.id + '.' + this.id) as SourceRef,
+            $source: (this.plugin.id + '.' + this.id) as SourceRef,
             values
           }
         ]
@@ -661,10 +667,10 @@ export class Device {
 
     if (meta.length) {
       this.debug('sending meta: %j', meta)
-      this.app.handleMessage(this.plugin.id+ '.' + this.id, {
+      this.app.handleMessage(this.plugin.id + '.' + this.id, {
         updates: [
           {
-            '$source': (this.plugin.id + '.' + this.id) as SourceRef,
+            $source: (this.plugin.id + '.' + this.id) as SourceRef,
             meta
           }
         ]
