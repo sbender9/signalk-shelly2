@@ -2,6 +2,10 @@ name: Publish to npm
 on:
   release:
     types: [created]
+  repository_dispatch:
+    types: [trigger-workflow]
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
