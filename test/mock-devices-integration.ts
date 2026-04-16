@@ -96,7 +96,7 @@ describe('Mock Device Integration Tests', () => {
       expect(valuesCall).to.exist
       if (valuesCall) {
         expect(valuesCall.args).to.have.length(2)
-        expect(valuesCall.args[0]).to.equal('signalk-shelly2') // plugin ID
+        expect(valuesCall.args[0]).to.equal('signalk-shelly2.shelly-hm')
         expect(valuesCall.args[1]).to.have.property('updates')
         expect(valuesCall.args[1].updates).to.be.an('array')
         expect(valuesCall.args[1].updates[0]).to.have.property('values')
