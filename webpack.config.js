@@ -19,19 +19,11 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.js?$/,
-        loader: 'babel-loader',
-        exclude: /node_modules/,
-        options: {
-          presets: ['@babel/preset-react']
-        }
-      },
-      {
         test: /\.jsx?$/,
         loader: 'babel-loader',
         exclude: /node_modules/,
         options: {
-          presets: ['@babel/preset-react']
+          presets: [['@babel/preset-react', { runtime: 'classic' }]]
         }
       },
       {
@@ -56,7 +48,18 @@ module.exports = {
         './PluginConfigurationPanel':
           './web/components/PluginConfigurationPanel'
       },
-      shared: [{ react: { singleton: false, strictVersion: true } }]
+      shared: {
+        react: {
+          singleton: true,
+          requiredVersion: '>=16.8.0',
+          strictVersion: true
+        },
+        'react-dom': {
+          singleton: true,
+          requiredVersion: '>=16.8.0',
+          strictVersion: true
+        }
+      }
     }),
     new WatchIgnorePlugin({
       paths: [path.resolve(__dirname, 'public/')]
